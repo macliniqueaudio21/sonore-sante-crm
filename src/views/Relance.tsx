@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlarmClock, CalendarCheck, CalendarClock, MapPin, PhoneCall, PhoneOff, StickyNote, ThumbsDown } from 'lucide-react'
+import { AlarmClock, Ban, CalendarCheck, CalendarClock, MapPin, PhoneCall, StickyNote, ThumbsDown } from 'lucide-react'
 import { useStore } from '../store'
 import type { Prospect } from '../data/types'
 import { cn, formatRelativeDay, fullName, rappelBucket } from '../lib/utils'
@@ -61,7 +61,7 @@ export function Relance({ onMenu }: { onMenu: () => void }) {
 function Row({ p, tab }: { p: Prospect; tab: Tab }) {
   const { select, openRdv, openRelance, setEtat, toast } = useStore()
   const last = p.notes[p.notes.length - 1]
-  const out = (etat: 'Pas intéressé' | 'Injoignable') => {
+  const out = (etat: 'Pas intéressé' | 'Clôture') => {
     setEtat(p.id, etat, `État prospect → ${etat}`)
     toast({ title: `${fullName(p)} → ${etat}` })
   }
@@ -110,8 +110,8 @@ function Row({ p, tab }: { p: Prospect; tab: Tab }) {
           <Button size="sm" className="h-9 flex-1" onClick={() => openRelance(p.id)} title="Reprogrammer">
             <CalendarClock size={15} /> Reporter
           </Button>
-          <Button size="sm" variant="ghost" className="h-9 w-9 px-0" title="Injoignable" onClick={() => out('Injoignable')}>
-            <PhoneOff size={15} />
+          <Button size="sm" variant="ghost" className="h-9 w-9 px-0" title="Clôture" onClick={() => out('Clôture')}>
+            <Ban size={15} />
           </Button>
           <Button size="sm" variant="ghost" className="h-9 w-9 px-0" title="Pas intéressé" onClick={() => out('Pas intéressé')}>
             <ThumbsDown size={15} />

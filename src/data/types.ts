@@ -8,15 +8,13 @@ export type EtatProspect =
   | 'NRP 2'
   | 'Relance phoning'
   | 'Pas intéressé'
-  | 'Injoignable'
+  | 'Hors zone'
+  | 'Faux numéro'
+  | 'Doublon'
+  | 'Clôture'
 
 /** Statut Suivi Patient : le parcours une fois qu'un RDV a été fixé. */
-export type StatutSuivi =
-  | 'RDV Pris'
-  | 'RDV Réalisé'
-  | 'Essai en cours'
-  | 'Facturé'
-  | 'Non appareillé'
+export type StatutSuivi = 'RDV Pris' | 'RDV Réalisé' | 'Essai' | 'Facturé'
 
 export type PourQui = 'Pour moi' | 'Pour un proche'
 export type Situation =
@@ -33,6 +31,14 @@ export interface Note {
   date: string // ISO
   auteur: string
   texte: string
+}
+
+/** Traçabilité des automatisations Onoff : date d'envoi de chaque SMS. */
+export interface SmsLog {
+  nrp1?: string
+  nrp2?: string
+  rdv?: string
+  avis?: string
 }
 
 export interface Prospect {
@@ -53,8 +59,12 @@ export interface Prospect {
   centPourcent: CentPourcent
   rappelLe?: string // ISO — date de relance phoning
   rdvLe?: string // ISO — date du RDV
+  essaiLe?: string // ISO — début de l'essai
   factureLe?: string // ISO — date de facturation
-  montant?: number
+  panier: number // Panier Moyen (€)
+  avisGoogle: boolean // Demander Avis Google
+  consentementLe: string // ISO — date de consentement (formulaire Meta)
+  sms: SmsLog
   notes: Note[]
 }
 

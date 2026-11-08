@@ -31,6 +31,23 @@ type Action =
   | { type: 'toast'; toast: Toast }
   | { type: 'dismiss'; id: number }
 
+/**
+ * Simule les automatisations (Onoff pour les SMS) déclenchées par un changement :
+ * SMS NRP 1 / NRP 2, SMS de confirmation RDV, SMS d'avis Google, et dates d'étape.
+ */
+function applyAutomations(before: Prospect, next: Prospect): Prospect {
+  const now = new Date().toISOString()
+  const sms = { ...next.sms }
+  if (next.etat === 'NRP 1' && before.etat !== 'NRP 1' && !sms.nrp1) sms.nrp1 = now
+  if (next.etat === 'NRP 2' && before.etat !== 'NRP 2' && !sms.nrp2) sms.nrp2 = now
+  if (next.statut === 'RDV Pris' && (before.statut !== 'RDV Pris' || before.rdvLe !== next.rdvLe)) sms.rdv = now
+  if (next.avisGoogle && !before.avisGoogle) sms.avis = now
+  const out: Prospect = { ...next, sms }
+  if (next.statut === 'Essai' && before.statut !== 'Essai' && !next.essaiLe) out.essaiLe = now
+  if (next.statut === 'Facturé' && before.statut !== 'Facturé') out.factureLe = now
+  return out
+}
+
 let noteSeq = 1
 function reducer(state: State, action: Action): State {
   switch (action.type) {
@@ -60,7 +77,7 @@ function reducer(state: State, action: Action): State {
                 },
               ]
             : p.notes
-          return { ...p, ...action.patch, notes }
+          return applyAutomations(p, { ...p, ...action.patch, notes })
         }),
       }
     case 'toast':

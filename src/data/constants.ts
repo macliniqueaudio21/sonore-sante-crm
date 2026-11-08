@@ -9,15 +9,14 @@ export const ETATS: EtatProspect[] = [
   'NRP 2',
   'Relance phoning',
   'Pas intéressé',
-  'Injoignable',
+  'Hors zone',
+  'Faux numéro',
+  'Doublon',
+  'Clôture',
 ]
-export const STATUTS: StatutSuivi[] = [
-  'RDV Pris',
-  'RDV Réalisé',
-  'Essai en cours',
-  'Facturé',
-  'Non appareillé',
-]
+export const STATUTS: StatutSuivi[] = ['RDV Pris', 'RDV Réalisé', 'Essai', 'Facturé']
+/** États qui sortent définitivement un prospect du circuit d'appel. */
+export const ETATS_SORTIE: EtatProspect[] = ['Pas intéressé', 'Hors zone', 'Faux numéro', 'Doublon', 'Clôture']
 
 export const CENTRES: Record<CentreId, { nom: string; court: string; ville: string; adresse: string }> = {
   cysoing: { nom: 'Centre de Cysoing', court: 'Cysoing', ville: 'Cysoing', adresse: '12 place de la République, 59830 Cysoing' },
@@ -40,15 +39,17 @@ export const ETAT_STYLE: Record<EtatProspect, string> = {
   'NRP 2': 'bg-orange-50 text-orange-700 ring-orange-600/15',
   'Relance phoning': 'bg-sky-50 text-sky-700 ring-sky-600/15',
   'Pas intéressé': 'bg-slate-100 text-slate-600 ring-slate-500/15',
-  Injoignable: 'bg-rose-50 text-rose-700 ring-rose-600/15',
+  'Hors zone': 'bg-stone-100 text-stone-600 ring-stone-500/15',
+  'Faux numéro': 'bg-rose-50 text-rose-700 ring-rose-600/15',
+  Doublon: 'bg-zinc-100 text-zinc-600 ring-zinc-500/15',
+  Clôture: 'bg-slate-800 text-white ring-slate-800',
 }
 
 export const STATUT_STYLE: Record<StatutSuivi, string> = {
   'RDV Pris': 'bg-indigo-50 text-indigo-700 ring-indigo-600/15',
   'RDV Réalisé': 'bg-violet-50 text-violet-700 ring-violet-600/15',
-  'Essai en cours': 'bg-amber-50 text-amber-700 ring-amber-600/15',
+  Essai: 'bg-amber-50 text-amber-700 ring-amber-600/15',
   Facturé: 'bg-emerald-50 text-emerald-700 ring-emerald-600/15',
-  'Non appareillé': 'bg-slate-100 text-slate-600 ring-slate-500/15',
 }
 
 export const CONSEILLERS = ['Camille D.', 'Julien M.', 'Sarah L.']

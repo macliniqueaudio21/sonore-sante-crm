@@ -61,7 +61,7 @@ export function AllProspects({ onMenu }: { onMenu: () => void }) {
           </select>
           <select className={`${inputCls} md:w-52`} value={statut} onChange={(e) => { setStatut(e.target.value as StatutSuivi | '' | 'none'); reset() }}>
             <option value="">Tous les statuts patient</option>
-            <option value="none">Sans statut (prospect)</option>
+            <option value="none">(Vide)</option>
             {STATUTS.map((s) => <option key={s}>{s}</option>)}
           </select>
         </div>

@@ -25,8 +25,8 @@ function periodStart(p: Period, offset = 0) {
 const t = (iso?: string) => (iso ? new Date(iso).getTime() : NaN)
 const reachedRdv = (p: Prospect) => p.statut !== null
 const reachedRealise = (p: Prospect) => p.statut !== null && p.statut !== 'RDV Pris'
-const reachedEssai = (p: Prospect) =>
-  p.statut === 'Essai en cours' || p.statut === 'Facturé' || (p.statut === 'Non appareillé' && p.notes.every((n) => !n.texte.startsWith('Bilan réalisé')))
+const reachedEssai = (p: Prospect) => p.statut === 'Essai' || p.statut === 'Facturé' || !!p.essaiLe
+const sumPanier = (list: Prospect[]) => list.reduce((s, p) => s + p.panier, 0)
 
 function computeKpis(list: Prospect[], from: number, to: number) {
   const recus = list.filter((p) => t(p.createdAt) >= from && t(p.createdAt) < to)
@@ -37,7 +37,7 @@ function computeKpis(list: Prospect[], from: number, to: number) {
     rdv: rdv.length,
     conv: recus.length ? (rdv.length / recus.length) * 100 : 0,
     factures: factures.length,
-    ca: factures.length * PANIER_MOYEN,
+    ca: sumPanier(factures),
     cohort: recus,
   }
 }
@@ -65,8 +65,9 @@ export function Dashboard({ onMenu }: { onMenu: () => void }) {
     const cur = computeKpis(visible, from, now)
     // Période précédente de même durée écoulée, pour une comparaison juste.
     const prev = computeKpis(visible, prevFrom, prevFrom + (now - from))
-    const essais = visible.filter((p) => p.statut === 'Essai en cours').length
-    const essaisNew = visible.filter((p) => p.statut === 'Essai en cours' && t(p.rdvLe) > now - 14 * DAY).length
+    const enEssai = visible.filter((p) => p.statut === 'Essai' && p.etat !== 'Clôture')
+    const essais = enEssai.length
+    const essaisNew = enEssai.filter((p) => t(p.essaiLe) > now - 14 * DAY).length
 
     // Séries du graphique : par semaine sur « Ce mois », par mois sinon.
     const buckets: { label: string; from: number; to: number }[] = []
@@ -89,7 +90,7 @@ export function Dashboard({ onMenu }: { onMenu: () => void }) {
     const series = buckets.map((b) => ({
       label: b.label,
       leads: visible.filter((p) => t(p.createdAt) >= b.from && t(p.createdAt) < b.to).length,
-      ca: visible.filter((p) => p.statut === 'Facturé' && t(p.factureLe) >= b.from && t(p.factureLe) < b.to).length * PANIER_MOYEN,
+      ca: sumPanier(visible.filter((p) => p.statut === 'Facturé' && t(p.factureLe) >= b.from && t(p.factureLe) < b.to)),
     }))
 
     const c = cur.cohort
@@ -153,7 +154,7 @@ export function Dashboard({ onMenu }: { onMenu: () => void }) {
               <span className="rounded-md bg-white/15 px-1.5 py-0.5 font-semibold">
                 {prev.ca ? `${cur.ca >= prev.ca ? '+' : ''}${(((cur.ca - prev.ca) / prev.ca) * 100).toFixed(0)} %` : '—'}
               </span>
-              {cur.factures} patients × {formatEur(PANIER_MOYEN)}
+              {cur.factures} patients · panier moyen {formatEur(cur.factures ? cur.ca / cur.factures : PANIER_MOYEN)}
             </div>
           </div>
         </div>
@@ -164,7 +165,7 @@ export function Dashboard({ onMenu }: { onMenu: () => void }) {
           <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-base font-semibold text-slate-900">Évolution du CA et des leads</h2>
-              <p className="text-sm text-slate-500">{period === '1m' ? 'Par semaine' : 'Par mois'} · CA calculé sur {formatEur(PANIER_MOYEN)} par patient facturé</p>
+              <p className="text-sm text-slate-500">{period === '1m' ? 'Par semaine' : 'Par mois'} · CA = somme des paniers des patients facturés</p>
             </div>
             <div className="flex items-center gap-4 text-xs text-slate-600">
               <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> CA facturé</span>

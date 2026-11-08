@@ -3,22 +3,25 @@ import {
   CalendarCheck,
   CalendarClock,
   CheckCircle2,
-  Clock,
+  Circle,
+  ClipboardList,
   Info,
   Mail,
-  MapPin,
   MessageSquarePlus,
   Phone,
   Send,
+  StickyNote,
   TriangleAlert,
+  User,
   X,
+  Zap,
 } from 'lucide-react'
 import { useStore } from '../store'
-import { CENTRES, ETATS, STATUTS } from '../data/constants'
+import { CENTRES, ETATS } from '../data/constants'
 import type { EtatProspect, StatutSuivi } from '../data/types'
-import { DAY, cn, formatAge, formatDate, formatRelativeDay, fullName, initials, startOfDay, toLocalInput } from '../lib/utils'
-import { Button, EtatBadge, Field, Modal, StatutBadge, inputCls } from './ui'
-import { MetaTags, SourceDot } from './MetaTags'
+import { DAY, cn, formatAge, formatDate, formatEur, formatRelativeDay, fullName, initials, startOfDay, toLocalInput } from '../lib/utils'
+import { Button, EtatBadge, Field, Modal, PanierInput, StatutBadge, StatutSelect, Switch, inputCls } from './ui'
+import { SourceDot } from './MetaTags'
 
 /* -------------------------------- RDV -------------------------------- */
 const SLOTS = ['09:00', '09:45', '10:30', '11:15', '14:00', '14:45', '15:30', '16:15', '17:00']
@@ -49,7 +52,7 @@ export function RdvModal() {
     const [h, m] = slot.split(':').map(Number)
     d.setHours(h, m)
     setStatut(p.id, 'RDV Pris', { rdvLe: d.toISOString() }, `RDV fixé le ${formatRelativeDay(d.toISOString())} au ${CENTRES[p.centre].nom}.${note ? ' ' + note : ''}`)
-    toast({ title: 'RDV confirmé', description: `${fullName(p)} · ${formatRelativeDay(d.toISOString())}`, tone: 'success' })
+    toast({ title: 'RDV confirmé · SMS Confirmation RDV envoyé', description: `${fullName(p)} · ${formatRelativeDay(d.toISOString())}`, tone: 'success' })
     close()
   }
 
@@ -184,7 +187,7 @@ export function RelanceModal() {
 
 /* ------------------------------ Drawer ------------------------------- */
 export function ProspectDrawer() {
-  const { state, byId, select, setEtat, setStatut, addNote, openRdv, openRelance, toast } = useStore()
+  const { state, byId, select, setEtat, setStatut, patch, addNote, openRdv, openRelance, toast } = useStore()
   const p = byId(state.selectedId)
   const [draft, setDraft] = useState('')
   useEffect(() => setDraft(''), [p?.id])
@@ -198,20 +201,34 @@ export function ProspectDrawer() {
   if (!p) return null
   const changeEtat = (etat: EtatProspect) => {
     setEtat(p.id, etat, `État prospect → ${etat}`)
-    toast({ title: 'État mis à jour', description: `${fullName(p)} · ${etat}` })
+    const sms = (etat === 'NRP 1' && !p.sms.nrp1) || (etat === 'NRP 2' && !p.sms.nrp2)
+    toast({ title: 'État mis à jour', description: `${fullName(p)} · ${etat}${sms ? ` · SMS ${etat} envoyé` : ''}` })
   }
-  const changeStatut = (v: string) => {
-    const statut = (v || null) as StatutSuivi | null
-    const extra = statut === 'Facturé' ? { factureLe: new Date().toISOString() } : {}
-    setStatut(p.id, statut, extra, `Statut suivi → ${statut ?? 'aucun'}`)
-    toast({ title: 'Statut patient mis à jour', description: `${fullName(p)} · ${statut ?? 'Aucun'}`, tone: statut === 'Facturé' ? 'success' : 'info' })
+  const changeStatut = (statut: StatutSuivi | null) => {
+    if (statut === 'RDV Pris' && !p.rdvLe) return openRdv(p.id)
+    setStatut(p.id, statut, {}, `Statut suivi → ${statut ?? '(Vide)'}`)
+    toast({ title: 'Statut patient mis à jour', description: `${fullName(p)} · ${statut ?? '(Vide)'}`, tone: statut === 'Facturé' ? 'success' : 'info' })
+  }
+  const setDate = (field: 'rappelLe' | 'rdvLe', value: string) => {
+    const iso = value ? new Date(value).toISOString() : undefined
+    if (field === 'rdvLe') {
+      const extra = iso && !p.statut ? { statut: 'RDV Pris' as const } : {}
+      patch(p.id, { rdvLe: iso, ...extra }, iso ? `Date de RDV → ${formatRelativeDay(iso)}` : 'Date de RDV effacée')
+    } else {
+      patch(p.id, { rappelLe: iso }, iso ? `Date de rappel → ${formatRelativeDay(iso)}` : 'Date de rappel effacée')
+    }
+  }
+  const saveNote = () => {
+    if (!draft.trim()) return
+    addNote(p.id, draft.trim())
+    setDraft('')
   }
 
   return (
     <div className="fixed inset-0 z-50">
       <div className="animate-fade-in absolute inset-0 bg-slate-900/30" onClick={() => select(null)} />
-      <aside className="animate-slide-in-right absolute inset-y-0 right-0 flex w-full max-w-[460px] flex-col bg-white shadow-2xl">
-        <div className="flex items-start gap-4 border-b border-slate-100 p-6">
+      <aside className="animate-slide-in-right absolute inset-y-0 right-0 flex w-full max-w-[480px] flex-col bg-[#F8FAFC] shadow-2xl">
+        <div className="flex items-start gap-4 border-b border-slate-200/70 bg-white p-6">
           <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-indigo-50 to-indigo-100 text-sm font-semibold text-indigo-700">
             {initials(p)}
           </div>
@@ -221,11 +238,12 @@ export function ProspectDrawer() {
               <SourceDot source={p.source} />
             </div>
             <p className="text-sm text-slate-500">
-              {p.age} ans · {p.ville} · <span className="text-slate-400">{p.id}</span>
+              {p.age} ans · {CENTRES[p.centre].nom} · <span className="text-slate-400">{p.id}</span>
             </p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               <EtatBadge etat={p.etat} />
               {p.statut && <StatutBadge statut={p.statut} />}
+              <span className="text-[11px] text-slate-400">reçu il y a {formatAge(p.createdAt)}</span>
             </div>
           </div>
           <button onClick={() => select(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Fermer">
@@ -233,79 +251,107 @@ export function ProspectDrawer() {
           </button>
         </div>
 
-        <div className="scrollbar-thin flex-1 space-y-6 overflow-y-auto p-6">
-          <div className="grid grid-cols-2 gap-2">
-            <a href={`tel:${p.telephone.replace(/\s/g, '')}`} className="flex items-center gap-2 rounded-xl border border-slate-200 p-3 text-sm font-medium text-slate-800 hover:border-emerald-300 hover:bg-emerald-50/50">
-              <Phone size={16} className="text-emerald-600" /> {p.telephone}
-            </a>
-            <a href={`mailto:${p.email}`} className="flex min-w-0 items-center gap-2 rounded-xl border border-slate-200 p-3 text-sm text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/50">
-              <Mail size={16} className="shrink-0 text-indigo-500" /> <span className="truncate">{p.email}</span>
-            </a>
-          </div>
+        <div className="scrollbar-thin flex-1 space-y-4 overflow-y-auto p-5">
+          {/* Coordonnées */}
+          <Section title="Coordonnées" icon={<User size={14} />}>
+            <div className="grid grid-cols-2 gap-3">
+              <EditField label="Prénom" value={p.prenom} onCommit={(v) => patch(p.id, { prenom: v })} />
+              <EditField label="Nom" value={p.nom} onCommit={(v) => patch(p.id, { nom: v })} />
+              <EditField label="Téléphone" value={p.telephone} type="tel" onCommit={(v) => patch(p.id, { telephone: v })}
+                action={<a href={`tel:${p.telephone.replace(/\s/g, '')}`} className="text-emerald-600 hover:text-emerald-700" aria-label="Appeler"><Phone size={14} /></a>} />
+              <EditField label="Ville" value={p.ville} onCommit={(v) => patch(p.id, { ville: v })} />
+              <div className="col-span-2">
+                <EditField label="Email" value={p.email} type="email" onCommit={(v) => patch(p.id, { email: v })}
+                  action={<a href={`mailto:${p.email}`} className="text-indigo-500 hover:text-indigo-600" aria-label="Écrire"><Mail size={14} /></a>} />
+              </div>
+            </div>
+          </Section>
 
-          <section>
-            <h3 className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">Réponses formulaire Meta</h3>
-            <MetaTags p={p} />
-          </section>
+          {/* Réponses Meta */}
+          <Section title="Réponses Meta Ads" icon={<SourceDot source={p.source} />}>
+            <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-100">
+              <MetaCell label="Pour qui ?" value={p.pourQui} />
+              <MetaCell label="Situation gênante" value={p.situation} />
+              <MetaCell label="100% Santé" value={p.centPourcent} tone={p.centPourcent === 'Oui' ? 'text-emerald-700' : p.centPourcent === 'Non' ? 'text-slate-700' : 'text-amber-700'} />
+              <MetaCell label="Date consentement" value={formatDate(p.consentementLe, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} />
+            </dl>
+          </Section>
 
-          <section className="grid grid-cols-2 gap-3 text-sm">
-            <Info2 icon={<MapPin size={14} />} label="Centre" value={CENTRES[p.centre].court} />
-            <Info2 icon={<Clock size={14} />} label="Reçu" value={`${formatDate(p.createdAt, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} · il y a ${formatAge(p.createdAt)}`} />
-            {p.rdvLe && <Info2 icon={<CalendarCheck size={14} />} label="RDV" value={formatRelativeDay(p.rdvLe)} />}
-            {p.rappelLe && p.etat === 'Relance phoning' && <Info2 icon={<CalendarClock size={14} />} label="Rappel" value={formatRelativeDay(p.rappelLe)} />}
-          </section>
+          {/* Suivi */}
+          <Section title="Suivi" icon={<ClipboardList size={14} />}>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="État Prospect">
+                <select className={inputCls} value={p.etat} onChange={(e) => changeEtat(e.target.value as EtatProspect)}>
+                  {ETATS.map((e) => <option key={e}>{e}</option>)}
+                </select>
+              </Field>
+              <Field label="Statut Suivi Patient">
+                <StatutSelect value={p.statut} onChange={changeStatut} className="h-[38px] w-full rounded-xl text-sm" />
+              </Field>
+              <Field label="Date de rappel">
+                <input type="datetime-local" className={inputCls} value={p.rappelLe ? toLocalInput(new Date(p.rappelLe)) : ''} onChange={(e) => setDate('rappelLe', e.target.value)} />
+              </Field>
+              <Field label="Date de RDV">
+                <input type="datetime-local" className={inputCls} value={p.rdvLe ? toLocalInput(new Date(p.rdvLe)) : ''} onChange={(e) => setDate('rdvLe', e.target.value)} />
+              </Field>
+              <Field label="Panier Moyen (€)">
+                <PanierInput value={p.panier} className="[&_input]:h-[38px] [&_input]:rounded-xl" onCommit={(v) => patch(p.id, { panier: v }, `Panier moyen → ${formatEur(v)}`)} />
+              </Field>
+              <Field label="Demander Avis">
+                <div className="flex h-[38px] items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-3">
+                  <Switch
+                    checked={p.avisGoogle}
+                    label="Demander Avis Google"
+                    onChange={(v) => {
+                      patch(p.id, { avisGoogle: v }, v ? 'Demande d’avis Google envoyée par SMS.' : undefined)
+                      if (v) toast({ title: 'SMS Avis Google envoyé', description: fullName(p), tone: 'success' })
+                    }}
+                  />
+                  <span className={cn('text-xs font-medium', p.avisGoogle ? 'text-emerald-700' : 'text-slate-500')}>{p.avisGoogle ? '✓ SMS Avis envoyé' : 'Non demandé'}</span>
+                </div>
+              </Field>
+            </div>
+            <div className="mt-3 flex gap-2">
+              <Button variant="emerald" className="flex-1" onClick={() => openRdv(p.id)}>
+                <CalendarCheck size={16} /> {p.rdvLe ? 'Déplacer le RDV' : 'Fixer un RDV'}
+              </Button>
+              <Button className="flex-1" onClick={() => openRelance(p.id)}>
+                <CalendarClock size={16} /> Relance phoning
+              </Button>
+            </div>
+          </Section>
 
-          <section className="grid grid-cols-2 gap-3">
-            <Field label="État prospect">
-              <select className={inputCls} value={p.etat} onChange={(e) => changeEtat(e.target.value as EtatProspect)}>
-                {ETATS.map((e) => <option key={e}>{e}</option>)}
-              </select>
-            </Field>
-            <Field label="Statut suivi patient">
-              <select className={inputCls} value={p.statut ?? ''} onChange={(e) => changeStatut(e.target.value)}>
-                <option value="">— Aucun —</option>
-                {STATUTS.map((s) => <option key={s}>{s}</option>)}
-              </select>
-            </Field>
-          </section>
+          {/* Onoff */}
+          <Section title="Traçabilité Automatisations Onoff" icon={<Zap size={14} />}>
+            <ul className="space-y-1.5">
+              <SmsRow label="SMS NRP 1" at={p.sms.nrp1} />
+              <SmsRow label="SMS NRP 2" at={p.sms.nrp2} />
+              <SmsRow label="SMS Confirmation RDV" at={p.sms.rdv} />
+              <SmsRow label="SMS Avis Google" at={p.sms.avis} />
+            </ul>
+          </Section>
 
-          <div className="flex gap-2">
-            <Button variant="emerald" className="flex-1" onClick={() => openRdv(p.id)}>
-              <CalendarCheck size={16} /> {p.rdvLe ? 'Déplacer le RDV' : 'Fixer un RDV'}
-            </Button>
-            <Button className="flex-1" onClick={() => openRelance(p.id)}>
-              <CalendarClock size={16} /> Relance
-            </Button>
-          </div>
-
-          <section>
-            <h3 className="mb-3 text-xs font-semibold tracking-wide text-slate-500 uppercase">Historique & notes</h3>
+          {/* Notes */}
+          <Section title="Notes" icon={<StickyNote size={14} />}>
             <div className="mb-4 flex gap-2">
-              <input
+              <textarea
+                rows={2}
                 className={inputCls}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && draft.trim()) {
-                    addNote(p.id, draft.trim())
-                    setDraft('')
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    saveNote()
                   }
                 }}
-                placeholder="Ajouter une note…"
+                placeholder="Ajouter une note… (Entrée pour enregistrer)"
               />
-              <Button
-                variant="primary"
-                disabled={!draft.trim()}
-                onClick={() => {
-                  addNote(p.id, draft.trim())
-                  setDraft('')
-                }}
-                aria-label="Ajouter la note"
-              >
+              <Button variant="primary" className="h-auto" disabled={!draft.trim()} onClick={saveNote} aria-label="Ajouter la note">
                 <MessageSquarePlus size={16} />
               </Button>
             </div>
-            <ol className="relative space-y-4 border-l border-slate-200 pl-5">
+            <ol className="relative ml-1 space-y-4 border-l border-slate-200 pl-5">
               {[...p.notes].reverse().map((n) => (
                 <li key={n.id} className="relative">
                   <span className="absolute top-1.5 -left-[25px] h-2.5 w-2.5 rounded-full border-2 border-white bg-slate-300" />
@@ -321,21 +367,63 @@ export function ProspectDrawer() {
                 <p className="mt-0.5 text-[11px] text-slate-400">Automatique · {formatDate(p.createdAt, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
               </li>
             </ol>
-          </section>
+          </Section>
         </div>
       </aside>
     </div>
   )
 }
 
-function Info2({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl bg-slate-50 p-3">
-      <div className="mb-0.5 flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
-        {icon} {label}
+    <section className="rounded-2xl border border-slate-200/70 bg-white p-4">
+      <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+        <span className="text-slate-400">{icon}</span>
+        {title}
+      </h3>
+      {children}
+    </section>
+  )
+}
+
+function EditField({ label, value, onCommit, type = 'text', action }: { label: string; value: string; onCommit: (v: string) => void; type?: string; action?: React.ReactNode }) {
+  const [v, setV] = useState(value)
+  useEffect(() => setV(value), [value])
+  return (
+    <Field label={label}>
+      <div className="relative">
+        <input
+          type={type}
+          className={cn(inputCls, !!action && 'pr-9')}
+          value={v}
+          onChange={(e) => setV(e.target.value)}
+          onBlur={() => (v.trim() && v.trim() !== value ? onCommit(v.trim()) : setV(value))}
+          onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+        />
+        {action && <span className="absolute top-1/2 right-3 -translate-y-1/2">{action}</span>}
       </div>
-      <div className="text-[13px] font-medium text-slate-800">{value}</div>
+    </Field>
+  )
+}
+
+function MetaCell({ label, value, tone = 'text-slate-800' }: { label: string; value: string; tone?: string }) {
+  return (
+    <div className="bg-slate-50/70 p-3">
+      <dt className="text-[11px] font-medium text-slate-500">{label}</dt>
+      <dd className={cn('mt-0.5 text-[13px] font-semibold', tone)}>{value}</dd>
     </div>
+  )
+}
+
+function SmsRow({ label, at }: { label: string; at?: string }) {
+  return (
+    <li className={cn('flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-[13px]', at ? 'bg-emerald-50/70' : 'bg-slate-50')}>
+      <span className={cn('flex items-center gap-2 font-medium', at ? 'text-emerald-700' : 'text-slate-400')}>
+        {at ? <CheckCircle2 size={15} /> : <Circle size={15} />}
+        {at ? `✓ ${label} envoyé` : `${label} — non envoyé`}
+      </span>
+      {at && <span className="text-[11px] text-emerald-700/70 tabular-nums">{formatDate(at, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>}
+    </li>
   )
 }
 

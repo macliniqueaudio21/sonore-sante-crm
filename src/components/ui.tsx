@@ -1,7 +1,7 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '../lib/utils'
-import { CENTRES, ETAT_STYLE, STATUT_STYLE } from '../data/constants'
+import { CENTRES, ETAT_STYLE, STATUTS, STATUT_STYLE } from '../data/constants'
 import type { CentreId, EtatProspect, StatutSuivi } from '../data/types'
 
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
@@ -185,6 +185,99 @@ export function EmptyState({ icon, title, text }: { icon: ReactNode; title: stri
       <div className="mb-3 grid h-11 w-11 place-items-center rounded-2xl bg-slate-100 text-slate-400">{icon}</div>
       <p className="text-sm font-medium text-slate-700">{title}</p>
       {text && <p className="mt-1 max-w-xs text-xs text-slate-500">{text}</p>}
+    </div>
+  )
+}
+
+/* ---------------------- Contrôles d'édition en ligne ---------------------- */
+
+export function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      title={label}
+      onClick={(e) => {
+        e.stopPropagation()
+        onChange(!checked)
+      }}
+      className={cn('relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors', checked ? 'bg-emerald-500' : 'bg-slate-200')}
+    >
+      <span className={cn('inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform', checked ? 'translate-x-[18px]' : 'translate-x-0.5')} />
+    </button>
+  )
+}
+
+/** Menu déroulant « Statut Suivi Patient », coloré selon la valeur. */
+export function StatutSelect({
+  value,
+  onChange,
+  className,
+}: {
+  value: StatutSuivi | null
+  onChange: (v: StatutSuivi | null) => void
+  className?: string
+}) {
+  return (
+    <select
+      value={value ?? ''}
+      onClick={(e) => e.stopPropagation()}
+      onChange={(e) => onChange((e.target.value || null) as StatutSuivi | null)}
+      className={cn(
+        'cursor-pointer rounded-lg py-1 pr-7 pl-2.5 text-xs font-semibold ring-1 ring-inset focus:outline-none focus:ring-2 focus:ring-indigo-500/40',
+        value ? STATUT_STYLE[value] : 'bg-white text-slate-500 ring-slate-200',
+        className,
+      )}
+    >
+      <option value="">(Vide)</option>
+      {STATUTS.map((s) => (
+        <option key={s} value={s}>
+          {s}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+/** Champ « Panier Moyen (€) » : valide à la sortie du champ ou avec Entrée. */
+export function PanierInput({ value, onCommit, className }: { value: number; onCommit: (v: number) => void; className?: string }) {
+  const [draft, setDraft] = useState(String(value))
+  useEffect(() => setDraft(String(value)), [value])
+  const commit = () => {
+    const n = Math.max(0, Math.round(Number(draft.replace(/\s/g, '').replace(',', '.'))))
+    if (Number.isFinite(n) && n !== value) onCommit(n)
+    else setDraft(String(value))
+  }
+  return (
+    <div className={cn('relative', className)} onClick={(e) => e.stopPropagation()}>
+      <input
+        type="number"
+        min={0}
+        step={50}
+        inputMode="numeric"
+        aria-label="Panier Moyen (€)"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+        className="w-full rounded-lg border border-slate-200 bg-white py-1.5 pr-7 pl-2.5 text-right text-sm font-medium text-slate-900 tabular-nums focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+      />
+      <span className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-xs text-slate-400">€</span>
+    </div>
+  )
+}
+
+/** Jauge d'essai J+0 → J+30. */
+export function EssaiGauge({ since }: { since?: string }) {
+  const j = since ? Math.max(0, Math.floor((Date.now() - new Date(since).getTime()) / 86_400_000)) : 0
+  return (
+    <div className="flex items-center gap-2">
+      <div className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-100">
+        <div className={cn('h-full rounded-full', j >= 25 ? 'bg-emerald-500' : 'bg-amber-400')} style={{ width: `${Math.max(4, Math.min((j / 30) * 100, 100))}%` }} />
+      </div>
+      <span className="text-xs text-slate-600 tabular-nums">J+{j} / 30</span>
     </div>
   )
 }

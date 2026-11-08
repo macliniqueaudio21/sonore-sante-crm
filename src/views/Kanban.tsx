@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowLeft, ArrowRight, CalendarCheck, CalendarClock, Clock, MapPin, MoreHorizontal, Phone, Sparkles, ThumbsDown, PhoneOff } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Ban, CalendarCheck, CalendarClock, Clock, Copy, MapPin, MapPinOff, MoreHorizontal, Phone, PhoneOff, Sparkles, ThumbsDown } from 'lucide-react'
 import { useStore } from '../store'
 import { KANBAN_ETATS } from '../data/constants'
 import type { EtatProspect, Prospect } from '../data/types'
@@ -153,8 +153,12 @@ function LeadCard({ p, onMove }: { p: Prospect; onMove: (e: EtatProspect) => voi
                 <div className="fixed inset-0 z-10" onClick={() => setMenu(false)} />
                 <div className="animate-pop-in absolute right-0 bottom-full z-20 mb-1 w-48 rounded-xl border border-slate-100 bg-white p-1 shadow-xl">
                   <MenuItem icon={<CalendarClock size={14} />} onClick={() => { setMenu(false); openRelance(p.id) }}>Relance phoning…</MenuItem>
-                  <MenuItem icon={<PhoneOff size={14} />} onClick={() => { setMenu(false); onMove('Injoignable') }}>Injoignable</MenuItem>
+                  <div className="mx-2 my-1 h-px bg-slate-100" />
                   <MenuItem icon={<ThumbsDown size={14} />} onClick={() => { setMenu(false); onMove('Pas intéressé') }}>Pas intéressé</MenuItem>
+                  <MenuItem icon={<MapPinOff size={14} />} onClick={() => { setMenu(false); onMove('Hors zone') }}>Hors zone</MenuItem>
+                  <MenuItem icon={<PhoneOff size={14} />} onClick={() => { setMenu(false); onMove('Faux numéro') }}>Faux numéro</MenuItem>
+                  <MenuItem icon={<Copy size={14} />} onClick={() => { setMenu(false); onMove('Doublon') }}>Doublon</MenuItem>
+                  <MenuItem icon={<Ban size={14} />} onClick={() => { setMenu(false); onMove('Clôture') }}>Clôture</MenuItem>
                 </div>
               </>
             )}

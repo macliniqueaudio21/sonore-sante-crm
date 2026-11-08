@@ -72,8 +72,8 @@ export function Support({ onMenu }: { onMenu: () => void }) {
   const { toast } = useStore()
   const faq = [
     ['Quel délai pour rappeler un nouveau lead ?', 'Idéalement moins de 2 heures : au-delà, le taux de prise de RDV chute fortement. Le badge rouge sur les cartes vous alerte.'],
-    ['Que signifie NRP ?', '« Ne Répond Pas ». Après NRP 2, planifiez une relance phoning ou classez le prospect « Injoignable ».'],
-    ['Comment est calculé le CA ?', 'Chaque patient passé au statut « Facturé » compte pour un panier moyen de 2 500 €.'],
+    ['Que signifie NRP ?', '« Ne Répond Pas ». Après NRP 2, planifiez une relance phoning ou passez le prospect en « Clôture ».'],
+    ['Comment est calculé le CA ?', 'Le CA additionne le « Panier Moyen (€) » de chaque patient au statut « Facturé » (2 500 € par défaut, modifiable dans le Parcours Patient).'],
     ['Puis-je voir un seul centre ?', 'Oui, utilisez le sélecteur de centre en haut de la barre latérale : toute l’application se filtre instantanément.'],
   ]
   return (
