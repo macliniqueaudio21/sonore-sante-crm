@@ -6,7 +6,7 @@ import type { CentreId, EtatProspect, StatutSuivi } from '../data/types'
 
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
   return (
-    <div className={cn('rounded-2xl border border-slate-200/70 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_-6px_rgba(15,23,42,0.06)]', className)}>
+    <div className={cn('card-surface bg-white', className)}>
       {children}
     </div>
   )
@@ -149,7 +149,7 @@ export function Modal({
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 grid place-items-center p-4">
-      <div className="animate-fade-in absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="animate-fade-in absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
       <div className="animate-pop-in relative w-full max-w-md rounded-2xl bg-white shadow-2xl">
         <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-5">
           <div>
@@ -203,9 +203,9 @@ export function Switch({ checked, onChange, label }: { checked: boolean; onChang
         e.stopPropagation()
         onChange(!checked)
       }}
-      className={cn('relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors', checked ? 'bg-emerald-500' : 'bg-slate-200')}
+      className={cn('relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors', checked ? 'bg-emerald-500' : 'bg-slate-300')}
     >
-      <span className={cn('inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform', checked ? 'translate-x-[18px]' : 'translate-x-0.5')} />
+      <span className={cn('inline-block h-4 w-4 rounded-full bg-[#fff] shadow-sm transition-transform', checked ? 'translate-x-[18px]' : 'translate-x-0.5')} />
     </button>
   )
 }

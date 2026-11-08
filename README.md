@@ -34,4 +34,13 @@ src/
 - **CA** : chaque patient « Facturé » compte 2 500 €.
 - Le sélecteur de centre filtre toute l'application (vues, KPI, badges du menu).
 
+## Thèmes
+
+Un sélecteur flottant (en bas à droite) bascule toute l'application entre 4 directions artistiques :
+Émeraude Médical, Fintech Qonto, Minimaliste Clair et Dark Mode Pro. Le choix est mémorisé dans le navigateur.
+
+Chaque thème redéfinit la palette Tailwind (variables `--color-*`), les fonds, rayons et ombres dans
+`src/index.css`. Les composants n'utilisent que des classes Tailwind standard et s'adaptent automatiquement ;
+les couleurs des graphiques Recharts sont dans `src/theme.tsx`.
+
 Les modifications (changement d'état, RDV, notes…) sont gardées en mémoire et réinitialisées au rechargement de la page.

@@ -226,8 +226,8 @@ export function ProspectDrawer() {
 
   return (
     <div className="fixed inset-0 z-50">
-      <div className="animate-fade-in absolute inset-0 bg-slate-900/30" onClick={() => select(null)} />
-      <aside className="animate-slide-in-right absolute inset-y-0 right-0 flex w-full max-w-[480px] flex-col bg-[#F8FAFC] shadow-2xl">
+      <div className="animate-fade-in absolute inset-0 bg-black/30" onClick={() => select(null)} />
+      <aside className="animate-slide-in-right absolute inset-y-0 right-0 flex w-full max-w-[480px] flex-col bg-app shadow-2xl">
         <div className="flex items-start gap-4 border-b border-slate-200/70 bg-white p-6">
           <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-indigo-50 to-indigo-100 text-sm font-semibold text-indigo-700">
             {initials(p)}
@@ -376,7 +376,7 @@ export function ProspectDrawer() {
 
 function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-slate-200/70 bg-white p-4">
+    <section className="card-surface bg-white p-4">
       <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
         <span className="text-slate-400">{icon}</span>
         {title}
@@ -431,7 +431,7 @@ function SmsRow({ label, at }: { label: string; at?: string }) {
 export function Toasts() {
   const { state } = useStore()
   return (
-    <div className="pointer-events-none fixed right-4 bottom-4 z-[60] flex w-[340px] max-w-[calc(100vw-2rem)] flex-col gap-2">
+    <div className="pointer-events-none fixed right-4 bottom-20 z-[60] flex w-[340px] max-w-[calc(100vw-2rem)] flex-col gap-2">
       {state.toasts.map((t) => (
         <div key={t.id} className="animate-pop-in pointer-events-auto flex items-start gap-3 rounded-2xl bg-slate-900 p-4 text-white shadow-2xl">
           {t.tone === 'success' ? (

@@ -127,7 +127,7 @@ function NavItem({
         <span
           className={cn(
             'rounded-full px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap',
-            badge.tone === 'rose' ? 'bg-rose-500 text-white shadow-sm shadow-rose-500/30' : 'bg-amber-400/15 text-amber-300 ring-1 ring-amber-400/30',
+            badge.tone === 'rose' ? 'bg-rose-500 text-rose-50 shadow-sm shadow-rose-500/30' : 'bg-amber-400/15 text-amber-300 ring-1 ring-amber-400/30',
           )}
         >
           {badge.text}
@@ -154,10 +154,10 @@ export function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose:
 
   return (
     <>
-      {mobileOpen && <div className="animate-fade-in fixed inset-0 z-40 bg-slate-900/50 lg:hidden" onClick={onClose} />}
+      {mobileOpen && <div className="animate-fade-in fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={onClose} />}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-[288px] flex-col bg-[#0F172A] transition-transform duration-300 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0',
+          'sidebar fixed inset-y-0 left-0 z-50 flex w-[288px] flex-col border-r border-[var(--sidebar-border)] bg-[var(--sidebar-bg)] transition-transform duration-300 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0',
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
@@ -185,7 +185,7 @@ export function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose:
         </div>
 
         <div className="m-3 flex items-center gap-3 rounded-xl bg-white/[0.03] p-2.5">
-          <div className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 text-xs font-semibold text-white">
+          <div className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 text-xs font-semibold text-indigo-50">
             {CURRENT_USER.initiales}
           </div>
           <div className="min-w-0 flex-1 leading-tight">

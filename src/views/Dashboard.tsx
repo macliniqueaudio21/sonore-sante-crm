@@ -6,6 +6,7 @@ import { BRANCHES, CENTRES, PANIER_MOYEN } from '../data/constants'
 import type { CentreId, Prospect } from '../data/types'
 import { DAY, cn, formatEur, formatEurCompact, formatInt, formatPct, startOfDay } from '../lib/utils'
 import { Card, PageHeader, Segmented } from '../components/ui'
+import { useTheme } from '../theme'
 
 type Period = '1m' | '3m' | '6m' | '12m'
 const PERIODS: { value: Period; label: string; months: number }[] = [
@@ -56,6 +57,7 @@ function Delta({ cur, prev, suffix = '' }: { cur: number; prev: number; suffix?:
 
 export function Dashboard({ onMenu }: { onMenu: () => void }) {
   const { visible, state, setView } = useStore()
+  const { chart } = useTheme().theme
   const [period, setPeriod] = useState<Period>('3m')
 
   const data = useMemo(() => {
@@ -151,7 +153,7 @@ export function Dashboard({ onMenu }: { onMenu: () => void }) {
             </div>
             <div className="mt-3 text-[28px] font-semibold tracking-tight tabular-nums">{formatEur(cur.ca)}</div>
             <div className="mt-3 flex items-center gap-2 text-xs text-emerald-50">
-              <span className="rounded-md bg-white/15 px-1.5 py-0.5 font-semibold">
+              <span className="rounded-md bg-white/15 px-1.5 py-0.5 font-semibold whitespace-nowrap">
                 {prev.ca ? `${cur.ca >= prev.ca ? '+' : ''}${(((cur.ca - prev.ca) / prev.ca) * 100).toFixed(0)} %` : '—'}
               </span>
               {cur.factures} patients · panier moyen {formatEur(cur.factures ? cur.ca / cur.factures : PANIER_MOYEN)}
@@ -168,8 +170,8 @@ export function Dashboard({ onMenu }: { onMenu: () => void }) {
               <p className="text-sm text-slate-500">{period === '1m' ? 'Par semaine' : 'Par mois'} · CA = somme des paniers des patients facturés</p>
             </div>
             <div className="flex items-center gap-4 text-xs text-slate-600">
-              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> CA facturé</span>
-              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-indigo-500" /> Leads</span>
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: chart.primary }} /> CA facturé</span>
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: chart.secondary }} /> Leads</span>
             </div>
           </div>
           <div className="h-[300px]">
@@ -177,20 +179,20 @@ export function Dashboard({ onMenu }: { onMenu: () => void }) {
               <AreaChart data={data.series} margin={{ top: 5, right: 0, left: -10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="gCa" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10B981" stopOpacity={0.28} />
-                    <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
+                    <stop offset="0%" stopColor={chart.primary} stopOpacity={0.28} />
+                    <stop offset="100%" stopColor={chart.primary} stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="gLeads" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#6366F1" stopOpacity={0.2} />
-                    <stop offset="100%" stopColor="#6366F1" stopOpacity={0} />
+                    <stop offset="0%" stopColor={chart.secondary} stopOpacity={0.2} />
+                    <stop offset="100%" stopColor={chart.secondary} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid vertical={false} stroke="#F1F5F9" />
-                <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: '#94A3B8', fontSize: 12 }} dy={8} />
-                <YAxis yAxisId="ca" tickLine={false} axisLine={false} tick={{ fill: '#94A3B8', fontSize: 12 }} tickFormatter={(v: number) => formatEurCompact(v)} width={64} />
-                <YAxis yAxisId="leads" orientation="right" tickLine={false} axisLine={false} tick={{ fill: '#94A3B8', fontSize: 12 }} width={32} allowDecimals={false} />
+                <CartesianGrid vertical={false} stroke={chart.grid} />
+                <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: chart.axis, fontSize: 12 }} dy={8} />
+                <YAxis yAxisId="ca" tickLine={false} axisLine={false} tick={{ fill: chart.axis, fontSize: 12 }} tickFormatter={(v: number) => formatEurCompact(v)} width={64} />
+                <YAxis yAxisId="leads" orientation="right" tickLine={false} axisLine={false} tick={{ fill: chart.axis, fontSize: 12 }} width={32} allowDecimals={false} />
                 <Tooltip
-                  cursor={{ stroke: '#CBD5E1', strokeDasharray: '4 4' }}
+                  cursor={{ stroke: chart.cursor, strokeDasharray: '4 4' }}
                   content={({ active, payload, label }) =>
                     active && payload?.length ? (
                       <div className="rounded-xl border border-slate-100 bg-white p-3 text-xs shadow-xl">
@@ -201,8 +203,8 @@ export function Dashboard({ onMenu }: { onMenu: () => void }) {
                     ) : null
                   }
                 />
-                <Area yAxisId="ca" type="monotone" dataKey="ca" stroke="#10B981" strokeWidth={2.5} fill="url(#gCa)" />
-                <Area yAxisId="leads" type="monotone" dataKey="leads" stroke="#6366F1" strokeWidth={2} fill="url(#gLeads)" />
+                <Area yAxisId="ca" type="monotone" dataKey="ca" stroke={chart.primary} strokeWidth={2.5} fill="url(#gCa)" />
+                <Area yAxisId="leads" type="monotone" dataKey="leads" stroke={chart.secondary} strokeWidth={2} fill="url(#gLeads)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>

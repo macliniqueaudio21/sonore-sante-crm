@@ -34,7 +34,7 @@ export function SourceDot({ source }: { source: Prospect['source'] }) {
     <span
       title={`Lead ${source}`}
       className={cn(
-        'inline-grid h-4 w-4 place-items-center rounded-[5px] text-[9px] font-bold text-white',
+        'inline-grid h-4 w-4 place-items-center rounded-[5px] text-[9px] font-bold text-[#fff]',
         source === 'Facebook' ? 'bg-[#1877F2]' : 'bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF]',
       )}
     >

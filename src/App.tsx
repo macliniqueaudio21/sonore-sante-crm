@@ -8,6 +8,7 @@ import { Relance } from './views/Relance'
 import { Parcours } from './views/Parcours'
 import { AllProspects } from './views/AllProspects'
 import { Facturation, Support } from './views/Secondary'
+import { ThemeSwitcher } from './components/ThemeSwitcher'
 
 export default function App() {
   const { state } = useStore()
@@ -25,9 +26,11 @@ export default function App() {
   }[state.view]
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC]">
+    <div className="bg-app flex min-h-screen">
       <Sidebar mobileOpen={mobileNav} onClose={() => setMobileNav(false)} />
-      <main className="min-w-0 flex-1">
+      {/* .themed : zone principale + panneaux, recolorée par le thème (la sidebar a ses propres règles) */}
+      <div className="themed contents">
+      <main className="min-w-0 flex-1 text-slate-900">
         {/* key : remonte la vue à chaque changement de centre pour réinitialiser pagination et onglets */}
         <div key={`${state.view}-${state.branch}`} className="animate-fade-in mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-10 lg:py-9">
           <View onMenu={onMenu} />
@@ -37,6 +40,8 @@ export default function App() {
       <RdvModal />
       <RelanceModal />
       <Toasts />
+      <ThemeSwitcher />
+      </div>
     </div>
   )
 }
