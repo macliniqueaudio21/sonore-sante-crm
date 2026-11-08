@@ -1,19 +1,28 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore } from './store'
-import { Sidebar } from './components/Sidebar'
+import { useDesign } from './design'
+import { Sidebar, TopNav } from './components/Navigation'
 import { ProspectDrawer, RdvModal, RelanceModal, Toasts } from './components/Overlays'
+import { DesignSwitcher } from './components/DesignSwitcher'
 import { Dashboard } from './views/Dashboard'
 import { Kanban } from './views/Kanban'
 import { Relance } from './views/Relance'
 import { Parcours } from './views/Parcours'
 import { AllProspects } from './views/AllProspects'
 import { Facturation, Support } from './views/Secondary'
-import { ThemeSwitcher } from './components/ThemeSwitcher'
+import { cn } from './lib/utils'
 
 export default function App() {
   const { state } = useStore()
+  const { design } = useDesign()
   const [mobileNav, setMobileNav] = useState(false)
   const onMenu = () => setMobileNav(true)
+  const top = design.layout === 'topnav'
+
+  // Retour en haut de page à chaque changement de vue ou de design.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [state.view, design.id])
 
   const View = {
     dashboard: Dashboard,
@@ -26,13 +35,14 @@ export default function App() {
   }[state.view]
 
   return (
-    <div className="bg-app flex min-h-screen">
-      <Sidebar mobileOpen={mobileNav} onClose={() => setMobileNav(false)} />
-      {/* .themed : zone principale + panneaux, recolorée par le thème (la sidebar a ses propres règles) */}
-      <div className="themed contents">
-      <main className="min-w-0 flex-1 text-slate-900">
+    <div className={cn('bg-app min-h-screen text-slate-900', top ? '' : 'flex')}>
+      {top ? <TopNav /> : <Sidebar mobileOpen={mobileNav} onClose={() => setMobileNav(false)} />}
+      <main className="min-w-0 flex-1">
         {/* key : remonte la vue à chaque changement de centre pour réinitialiser pagination et onglets */}
-        <div key={`${state.view}-${state.branch}`} className="animate-fade-in mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-10 lg:py-9">
+        <div
+          key={`${state.view}-${state.branch}`}
+          className={cn('animate-fade-in px-4 pt-6 pb-24 sm:px-6', top ? 'w-full lg:px-12 lg:pt-10' : 'mx-auto max-w-[1280px] lg:px-10 lg:pt-9')}
+        >
           <View onMenu={onMenu} />
         </div>
       </main>
@@ -40,8 +50,7 @@ export default function App() {
       <RdvModal />
       <RelanceModal />
       <Toasts />
-      <ThemeSwitcher />
-      </div>
+      <DesignSwitcher />
     </div>
   )
 }

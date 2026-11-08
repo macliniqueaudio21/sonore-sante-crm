@@ -33,24 +33,26 @@ export const BRANCHES: { id: BranchId; label: string; sub: string }[] = [
   { id: 'tourlaville', label: 'Centre de Tourlaville', sub: 'Manche (50)' },
 ]
 
-export const ETAT_STYLE: Record<EtatProspect, string> = {
-  'Nouveau lead': 'bg-indigo-50 text-indigo-700 ring-indigo-600/15',
-  'NRP 1': 'bg-amber-50 text-amber-700 ring-amber-600/15',
-  'NRP 2': 'bg-orange-50 text-orange-700 ring-orange-600/15',
-  'Relance phoning': 'bg-sky-50 text-sky-700 ring-sky-600/15',
-  'Pas intéressé': 'bg-slate-100 text-slate-600 ring-slate-500/15',
-  'Hors zone': 'bg-stone-100 text-stone-600 ring-stone-500/15',
-  'Faux numéro': 'bg-rose-50 text-rose-700 ring-rose-600/15',
-  Doublon: 'bg-zinc-100 text-zinc-600 ring-zinc-500/15',
-  Clôture: 'bg-slate-800 text-white ring-slate-800',
+/** Couleur du petit point de statut (les badges restent gris). */
+const GREEN = '#10B981', AMBER = '#F59E0B', RED = '#EF4444', BLUE = '#3B82F6', GRAY = '#A1A1AA'
+export const ETAT_DOT: Record<EtatProspect, string> = {
+  'Nouveau lead': GREEN,
+  'NRP 1': AMBER,
+  'NRP 2': RED,
+  'Relance phoning': BLUE,
+  'Pas intéressé': GRAY,
+  'Hors zone': GRAY,
+  'Faux numéro': GRAY,
+  Doublon: GRAY,
+  Clôture: GRAY,
 }
-
-export const STATUT_STYLE: Record<StatutSuivi, string> = {
-  'RDV Pris': 'bg-indigo-50 text-indigo-700 ring-indigo-600/15',
-  'RDV Réalisé': 'bg-violet-50 text-violet-700 ring-violet-600/15',
-  Essai: 'bg-amber-50 text-amber-700 ring-amber-600/15',
-  Facturé: 'bg-emerald-50 text-emerald-700 ring-emerald-600/15',
+export const STATUT_DOT: Record<StatutSuivi, string> = {
+  'RDV Pris': BLUE,
+  'RDV Réalisé': AMBER,
+  Essai: AMBER,
+  Facturé: GREEN,
 }
+export const DOT = { GREEN, AMBER, RED, BLUE, GRAY }
 
 export const CONSEILLERS = ['Camille D.', 'Julien M.', 'Sarah L.']
 export const CURRENT_USER = { nom: 'Camille Dufresne', initiales: 'CD', role: 'Audioprothésiste D.E.' }

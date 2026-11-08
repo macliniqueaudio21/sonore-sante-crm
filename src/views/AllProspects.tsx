@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react'
 import { ArrowDownUp, Download, Search, Users } from 'lucide-react'
 import { useStore } from '../store'
-import { ETATS, STATUTS } from '../data/constants'
+import { CENTRES, ETATS, STATUTS } from '../data/constants'
 import type { EtatProspect, StatutSuivi } from '../data/types'
 import { formatAge, formatDate, fullName } from '../lib/utils'
-import { Button, Card, CentreBadge, EmptyState, EtatBadge, PageHeader, StatutBadge, inputCls } from '../components/ui'
-import { SourceDot } from '../components/MetaTags'
+import { Button, Card, EmptyState, EtatBadge, PageHeader, StatutBadge, inputCls } from '../components/ui'
 
 const PAGE = 25
 
@@ -70,15 +69,15 @@ export function AllProspects({ onMenu }: { onMenu: () => void }) {
           <EmptyState icon={<Users size={18} />} title="Aucun prospect ne correspond" text="Essayez d'élargir vos filtres." />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] text-sm">
+            <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/60 text-left text-xs font-medium text-slate-500">
+                <tr className="border-b border-slate-100 text-left text-xs font-medium text-slate-400">
                   <th className="px-5 py-3">Prospect</th>
-                  <th className="px-5 py-3">Téléphone</th>
-                  <th className="px-5 py-3">Ville</th>
-                  <th className="px-5 py-3">Centre</th>
-                  <th className="px-5 py-3">État prospect</th>
-                  <th className="px-5 py-3">Statut suivi</th>
+                  <th className="hidden px-5 py-3 md:table-cell">Téléphone</th>
+                  <th className="hidden px-5 py-3 lg:table-cell">Ville</th>
+                  <th className="hidden px-5 py-3 xl:table-cell">Centre</th>
+                  <th className="px-5 py-3">État</th>
+                  <th className="hidden px-5 py-3 sm:table-cell">Statut</th>
                   <th className="px-5 py-3">
                     <button onClick={() => setAsc((a) => !a)} className="inline-flex cursor-pointer items-center gap-1 hover:text-slate-800">
                       Reçu le <ArrowDownUp size={12} />
@@ -88,18 +87,15 @@ export function AllProspects({ onMenu }: { onMenu: () => void }) {
               </thead>
               <tbody>
                 {rows.map((p) => (
-                  <tr key={p.id} onClick={() => select(p.id)} className="cursor-pointer border-b border-slate-50 last:border-0 hover:bg-indigo-50/30">
+                  <tr key={p.id} onClick={() => select(p.id)} className="cursor-pointer border-b border-slate-50 last:border-0 hover:bg-slate-50/70">
                     <td className="px-5 py-3">
-                      <div className="flex items-center gap-2">
-                        <SourceDot source={p.source} />
-                        <span className="font-medium text-slate-900">{fullName(p)}</span>
-                      </div>
+                      <span className="font-medium text-slate-900">{fullName(p)}</span>
                     </td>
-                    <td className="px-5 py-3 whitespace-nowrap text-slate-600 tabular-nums">{p.telephone}</td>
-                    <td className="px-5 py-3 text-slate-600">{p.ville}</td>
-                    <td className="px-5 py-3"><CentreBadge centre={p.centre} /></td>
+                    <td className="hidden px-5 py-3 whitespace-nowrap text-slate-600 tabular-nums md:table-cell">{p.telephone}</td>
+                    <td className="hidden px-5 py-3 text-slate-500 lg:table-cell">{p.ville}</td>
+                    <td className="hidden px-5 py-3 text-slate-500 xl:table-cell">{CENTRES[p.centre].court}</td>
                     <td className="px-5 py-3"><EtatBadge etat={p.etat} /></td>
-                    <td className="px-5 py-3">{p.statut ? <StatutBadge statut={p.statut} /> : <span className="text-slate-300">—</span>}</td>
+                    <td className="hidden px-5 py-3 sm:table-cell">{p.statut ? <StatutBadge statut={p.statut} /> : <span className="text-slate-300">—</span>}</td>
                     <td className="px-5 py-3 whitespace-nowrap text-slate-600">
                       {formatDate(p.createdAt, { day: 'numeric', month: 'short', year: '2-digit' })}
                       <span className="ml-1.5 text-xs text-slate-400">({formatAge(p.createdAt)})</span>

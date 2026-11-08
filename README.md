@@ -34,13 +34,16 @@ src/
 - **CA** : chaque patient « Facturé » compte 2 500 €.
 - Le sélecteur de centre filtre toute l'application (vues, KPI, badges du menu).
 
-## Thèmes
+## 3 architectures de design
 
-Un sélecteur flottant (en bas à droite) bascule toute l'application entre 4 directions artistiques :
-Émeraude Médical, Fintech Qonto, Minimaliste Clair et Dark Mode Pro. Le choix est mémorisé dans le navigateur.
+Un sélecteur discret (en bas à droite) change la structure **et** le style de toute l'application :
 
-Chaque thème redéfinit la palette Tailwind (variables `--color-*`), les fonds, rayons et ombres dans
-`src/index.css`. Les composants n'utilisent que des classes Tailwind standard et s'adaptent automatiquement ;
-les couleurs des graphiques Recharts sont dans `src/theme.tsx`.
+1. **Épuré Blanc & Vert** (par défaut) : sidebar blanche fine (220 px), fond #F8FAFC, accent unique #059669.
+2. **Pleine Largeur** : plus de sidebar, navigation horizontale de 64 px en haut, contenu sur toute la largeur, accent #047857.
+3. **Minimaliste Suisse** : ultra-plat, sans ombres, bordures 1 px #E4E4E7, typographie plus petite.
+
+Les badges sont monochromes, avec un petit point de couleur pour le statut. Les jetons de chaque design
+(accent, bordures, ombres, rayons, gris) sont dans `src/index.css` ; la structure (sidebar ou barre du haut)
+et les couleurs des graphiques sont dans `src/design.tsx`. Le choix est mémorisé dans le navigateur.
 
 Les modifications (changement d'état, RDV, notes…) sont gardées en mémoire et réinitialisées au rechargement de la page.

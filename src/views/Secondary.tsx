@@ -17,20 +17,20 @@ export function Facturation({ onMenu }: { onMenu: () => void }) {
       <PageHeader onMenu={onMenu} title="Facturation" subtitle={`Abonnement du groupe ${GROUP_NAME}`} />
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <Card className="relative overflow-hidden p-6 xl:col-span-2">
-          <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-indigo-50" />
+          
           <div className="relative">
-            <Badge className="bg-indigo-50 text-indigo-700 ring-indigo-600/15"><Zap size={11} /> Offre Réseau</Badge>
+            <Badge dot="#10B981"><Zap size={11} /> Offre Réseau</Badge>
             <div className="mt-3 flex items-baseline gap-2">
               <span className="text-3xl font-semibold tracking-tight text-slate-900">{formatEur(1490)}</span>
               <span className="text-sm text-slate-500">HT / mois · 4 centres</span>
             </div>
             <ul className="mt-5 grid gap-2.5 text-sm text-slate-700 sm:grid-cols-2">
               {['Campagnes Meta gérées par Sonore Santé', 'Leads illimités, livrés en temps réel', 'CRM multi-centres & Branch Switcher', 'SMS de confirmation et de rappel RDV', 'Reporting CA & ROI par centre', 'Account manager dédié'].map((f) => (
-                <li key={f} className="flex items-center gap-2"><Check size={15} className="text-emerald-500" /> {f}</li>
+                <li key={f} className="flex items-center gap-2"><Check size={15} className="text-[var(--accent-text)]" /> {f}</li>
               ))}
             </ul>
             <div className="mt-6 flex flex-wrap gap-2">
-              <Button variant="primary" onClick={() => toast({ title: 'Demande envoyée', description: 'Votre account manager vous recontacte sous 24 h.', tone: 'success' })}>Ajouter un centre</Button>
+              <Button variant="accent" onClick={() => toast({ title: 'Demande envoyée', description: 'Votre account manager vous recontacte sous 24 h.', tone: 'success' })}>Ajouter un centre</Button>
               <Button onClick={() => toast({ title: 'Moyen de paiement', description: 'Disponible dans la version connectée.' })}>Modifier le moyen de paiement</Button>
             </div>
           </div>
@@ -56,7 +56,7 @@ export function Facturation({ onMenu }: { onMenu: () => void }) {
               <span className="flex-1 font-medium text-slate-800">{inv.id}</span>
               <span className="hidden text-slate-500 sm:inline">{inv.date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</span>
               <span className="w-24 text-right tabular-nums">{formatEur(inv.montant)}</span>
-              <Badge className={i === 0 ? 'bg-amber-50 text-amber-700 ring-amber-600/15' : 'bg-emerald-50 text-emerald-700 ring-emerald-600/15'}>{i === 0 ? 'À venir' : 'Payée'}</Badge>
+              <Badge dot={i === 0 ? "#F59E0B" : "#10B981"}>{i === 0 ? 'À venir' : 'Payée'}</Badge>
               <button className="cursor-pointer rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Télécharger" onClick={() => toast({ title: `Téléchargement ${inv.id}.pdf` })}>
                 <Download size={15} />
               </button>
@@ -81,9 +81,9 @@ export function Support({ onMenu }: { onMenu: () => void }) {
       <PageHeader onMenu={onMenu} title="Support" subtitle="Votre équipe Sonore Santé vous répond du lundi au vendredi, 9h–18h" />
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {[
-          { icon: <MessageCircle size={18} />, title: 'Chat en direct', text: 'Réponse moyenne en 4 min', cls: 'bg-emerald-50 text-emerald-600' },
-          { icon: <Phone size={18} />, title: '03 20 00 59 59', text: 'Ligne partenaires dédiée', cls: 'bg-indigo-50 text-indigo-600' },
-          { icon: <Mail size={18} />, title: 'partenaires@sonore-sante.fr', text: 'Réponse sous 24 h', cls: 'bg-amber-50 text-amber-600' },
+          { icon: <MessageCircle size={18} />, title: 'Chat en direct', text: 'Réponse moyenne en 4 min', cls: 'bg-slate-100 text-slate-600' },
+          { icon: <Phone size={18} />, title: '03 20 00 59 59', text: 'Ligne partenaires dédiée', cls: 'bg-slate-100 text-slate-600' },
+          { icon: <Mail size={18} />, title: 'partenaires@sonore-sante.fr', text: 'Réponse sous 24 h', cls: 'bg-slate-100 text-slate-600' },
         ].map((c) => (
           <Card key={c.title} className="p-5">
             <button className="w-full cursor-pointer text-left" onClick={() => toast({ title: c.title, description: 'Disponible dans la version connectée.' })}>

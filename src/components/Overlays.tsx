@@ -3,7 +3,6 @@ import {
   CalendarCheck,
   CalendarClock,
   CheckCircle2,
-  Circle,
   ClipboardList,
   Info,
   Mail,
@@ -65,7 +64,7 @@ export function RdvModal() {
       footer={
         <>
           <Button variant="ghost" onClick={close}>Annuler</Button>
-          <Button variant="emerald" onClick={confirm}>
+          <Button variant="accent" onClick={confirm}>
             <CalendarCheck size={16} /> Confirmer le RDV
           </Button>
         </>
@@ -80,7 +79,7 @@ export function RdvModal() {
                 onClick={() => setDay(i)}
                 className={cn(
                   'cursor-pointer rounded-xl border px-1 py-2 text-center transition-colors',
-                  day === i ? 'border-emerald-500 bg-emerald-50 text-emerald-800' : 'border-slate-200 text-slate-600 hover:border-slate-300',
+                  day === i ? 'border-slate-900 bg-slate-50 text-slate-900' : 'border-slate-200 text-slate-600 hover:border-slate-300',
                 )}
               >
                 <div className="text-[10px] font-medium uppercase">{d.toLocaleDateString('fr-FR', { weekday: 'short' })}</div>
@@ -101,7 +100,7 @@ export function RdvModal() {
                   onClick={() => setSlot(s)}
                   className={cn(
                     'cursor-pointer rounded-lg border py-1.5 text-sm font-medium tabular-nums transition-colors disabled:cursor-not-allowed disabled:border-dashed disabled:text-slate-300 disabled:line-through',
-                    slot === s && !busy ? 'border-emerald-500 bg-emerald-50 text-emerald-800' : 'border-slate-200 text-slate-700 hover:border-slate-300',
+                    slot === s && !busy ? 'border-slate-900 bg-slate-50 text-slate-900' : 'border-slate-200 text-slate-700 hover:border-slate-300',
                   )}
                 >
                   {s}
@@ -113,8 +112,8 @@ export function RdvModal() {
         <Field label="Note (optionnel)">
           <input className={inputCls} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ex : venir avec l'ordonnance ORL" />
         </Field>
-        <p className="flex items-center gap-2 rounded-xl bg-slate-50 p-3 text-xs text-slate-500">
-          <Send size={14} className="shrink-0 text-indigo-500" />
+        <p className="flex items-center gap-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
+          <Send size={14} className="shrink-0 text-slate-400" />
           Un SMS de confirmation et un rappel J-1 seront envoyés au {p.telephone}.
         </p>
       </div>
@@ -226,10 +225,10 @@ export function ProspectDrawer() {
 
   return (
     <div className="fixed inset-0 z-50">
-      <div className="animate-fade-in absolute inset-0 bg-black/30" onClick={() => select(null)} />
-      <aside className="animate-slide-in-right absolute inset-y-0 right-0 flex w-full max-w-[480px] flex-col bg-app shadow-2xl">
-        <div className="flex items-start gap-4 border-b border-slate-200/70 bg-white p-6">
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-indigo-50 to-indigo-100 text-sm font-semibold text-indigo-700">
+      <div className="animate-fade-in absolute inset-0 bg-slate-900/20" onClick={() => select(null)} />
+      <aside className="animate-slide-in-right absolute inset-y-0 right-0 flat-overlay flex w-full max-w-[480px] flex-col bg-app shadow-xl">
+        <div className="flex items-start gap-4 border-b border-[var(--card-border)] bg-white p-6">
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-slate-100 text-sm font-semibold text-slate-600">
             {initials(p)}
           </div>
           <div className="min-w-0 flex-1">
@@ -258,21 +257,21 @@ export function ProspectDrawer() {
               <EditField label="Prénom" value={p.prenom} onCommit={(v) => patch(p.id, { prenom: v })} />
               <EditField label="Nom" value={p.nom} onCommit={(v) => patch(p.id, { nom: v })} />
               <EditField label="Téléphone" value={p.telephone} type="tel" onCommit={(v) => patch(p.id, { telephone: v })}
-                action={<a href={`tel:${p.telephone.replace(/\s/g, '')}`} className="text-emerald-600 hover:text-emerald-700" aria-label="Appeler"><Phone size={14} /></a>} />
+                action={<a href={`tel:${p.telephone.replace(/\s/g, '')}`} className="text-slate-400 hover:text-[var(--accent-text)]" aria-label="Appeler"><Phone size={14} /></a>} />
               <EditField label="Ville" value={p.ville} onCommit={(v) => patch(p.id, { ville: v })} />
               <div className="col-span-2">
                 <EditField label="Email" value={p.email} type="email" onCommit={(v) => patch(p.id, { email: v })}
-                  action={<a href={`mailto:${p.email}`} className="text-indigo-500 hover:text-indigo-600" aria-label="Écrire"><Mail size={14} /></a>} />
+                  action={<a href={`mailto:${p.email}`} className="text-slate-400 hover:text-slate-700" aria-label="Écrire"><Mail size={14} /></a>} />
               </div>
             </div>
           </Section>
 
           {/* Réponses Meta */}
           <Section title="Réponses Meta Ads" icon={<SourceDot source={p.source} />}>
-            <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-100">
+            <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-slate-100 ring-1 ring-slate-100">
               <MetaCell label="Pour qui ?" value={p.pourQui} />
               <MetaCell label="Situation gênante" value={p.situation} />
-              <MetaCell label="100% Santé" value={p.centPourcent} tone={p.centPourcent === 'Oui' ? 'text-emerald-700' : p.centPourcent === 'Non' ? 'text-slate-700' : 'text-amber-700'} />
+              <MetaCell label="100% Santé" value={p.centPourcent}  />
               <MetaCell label="Date consentement" value={formatDate(p.consentementLe, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} />
             </dl>
           </Section>
@@ -286,7 +285,7 @@ export function ProspectDrawer() {
                 </select>
               </Field>
               <Field label="Statut Suivi Patient">
-                <StatutSelect value={p.statut} onChange={changeStatut} className="h-[38px] w-full rounded-xl text-sm" />
+                <StatutSelect value={p.statut} onChange={changeStatut} className="w-full [&_select]:h-[38px] [&_select]:rounded-lg [&_select]:text-sm" />
               </Field>
               <Field label="Date de rappel">
                 <input type="datetime-local" className={inputCls} value={p.rappelLe ? toLocalInput(new Date(p.rappelLe)) : ''} onChange={(e) => setDate('rappelLe', e.target.value)} />
@@ -295,10 +294,10 @@ export function ProspectDrawer() {
                 <input type="datetime-local" className={inputCls} value={p.rdvLe ? toLocalInput(new Date(p.rdvLe)) : ''} onChange={(e) => setDate('rdvLe', e.target.value)} />
               </Field>
               <Field label="Panier Moyen (€)">
-                <PanierInput value={p.panier} className="[&_input]:h-[38px] [&_input]:rounded-xl" onCommit={(v) => patch(p.id, { panier: v }, `Panier moyen → ${formatEur(v)}`)} />
+                <PanierInput value={p.panier} className="[&_input]:h-[38px] [&_input]:rounded-lg [&_input]:border-slate-200 [&_input]:bg-white [&_input]:text-sm" onCommit={(v) => patch(p.id, { panier: v }, `Panier moyen → ${formatEur(v)}`)} />
               </Field>
               <Field label="Demander Avis">
-                <div className="flex h-[38px] items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-3">
+                <div className="flex h-[38px] items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-3">
                   <Switch
                     checked={p.avisGoogle}
                     label="Demander Avis Google"
@@ -307,12 +306,12 @@ export function ProspectDrawer() {
                       if (v) toast({ title: 'SMS Avis Google envoyé', description: fullName(p), tone: 'success' })
                     }}
                   />
-                  <span className={cn('text-xs font-medium', p.avisGoogle ? 'text-emerald-700' : 'text-slate-500')}>{p.avisGoogle ? '✓ SMS Avis envoyé' : 'Non demandé'}</span>
+                  <span className={cn('text-xs font-medium', p.avisGoogle ? 'text-[var(--accent-text)]' : 'text-slate-500')}>{p.avisGoogle ? '✓ SMS Avis envoyé' : 'Non demandé'}</span>
                 </div>
               </Field>
             </div>
             <div className="mt-3 flex gap-2">
-              <Button variant="emerald" className="flex-1" onClick={() => openRdv(p.id)}>
+              <Button variant="accent" className="flex-1" onClick={() => openRdv(p.id)}>
                 <CalendarCheck size={16} /> {p.rdvLe ? 'Déplacer le RDV' : 'Fixer un RDV'}
               </Button>
               <Button className="flex-1" onClick={() => openRelance(p.id)}>
@@ -323,7 +322,7 @@ export function ProspectDrawer() {
 
           {/* Onoff */}
           <Section title="Traçabilité Automatisations Onoff" icon={<Zap size={14} />}>
-            <ul className="space-y-1.5">
+            <ul className="divide-y divide-slate-100">
               <SmsRow label="SMS NRP 1" at={p.sms.nrp1} />
               <SmsRow label="SMS NRP 2" at={p.sms.nrp2} />
               <SmsRow label="SMS Confirmation RDV" at={p.sms.rdv} />
@@ -362,7 +361,7 @@ export function ProspectDrawer() {
                 </li>
               ))}
               <li className="relative">
-                <span className="absolute top-1.5 -left-[25px] h-2.5 w-2.5 rounded-full border-2 border-white bg-indigo-400" />
+                <span className="absolute top-1.5 -left-[25px] h-2.5 w-2.5 rounded-full border-2 border-white bg-slate-400" />
                 <p className="text-sm text-slate-700">Lead reçu via formulaire {p.source}</p>
                 <p className="mt-0.5 text-[11px] text-slate-400">Automatique · {formatDate(p.createdAt, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
               </li>
@@ -417,12 +416,12 @@ function MetaCell({ label, value, tone = 'text-slate-800' }: { label: string; va
 
 function SmsRow({ label, at }: { label: string; at?: string }) {
   return (
-    <li className={cn('flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-[13px]', at ? 'bg-emerald-50/70' : 'bg-slate-50')}>
-      <span className={cn('flex items-center gap-2 font-medium', at ? 'text-emerald-700' : 'text-slate-400')}>
-        {at ? <CheckCircle2 size={15} /> : <Circle size={15} />}
+    <li className="flex items-center justify-between gap-3 py-1.5 text-[13px]">
+      <span className={cn('flex items-center gap-2', at ? 'text-slate-800' : 'text-slate-400')}>
+        <span className="h-1.5 w-1.5 rounded-full" style={{ background: at ? '#10B981' : '#D4D4D8' }} />
         {at ? `✓ ${label} envoyé` : `${label} — non envoyé`}
       </span>
-      {at && <span className="text-[11px] text-emerald-700/70 tabular-nums">{formatDate(at, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>}
+      {at && <span className="text-[11px] text-slate-400 tabular-nums">{formatDate(at, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>}
     </li>
   )
 }

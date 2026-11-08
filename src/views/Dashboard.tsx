@@ -1,12 +1,11 @@
 import { useMemo, useState } from 'react'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { ArrowDownRight, ArrowUpRight, CalendarCheck, Euro, FlaskConical, Inbox } from 'lucide-react'
 import { useStore } from '../store'
-import { BRANCHES, CENTRES, PANIER_MOYEN } from '../data/constants'
+import { BRANCHES, CENTRES } from '../data/constants'
 import type { CentreId, Prospect } from '../data/types'
 import { DAY, cn, formatEur, formatEurCompact, formatInt, formatPct, startOfDay } from '../lib/utils'
 import { Card, PageHeader, Segmented } from '../components/ui'
-import { useTheme } from '../theme'
+import { useDesign } from '../design'
 
 type Period = '1m' | '3m' | '6m' | '12m'
 const PERIODS: { value: Period; label: string; months: number }[] = [
@@ -43,21 +42,21 @@ function computeKpis(list: Prospect[], from: number, to: number) {
   }
 }
 
-function Delta({ cur, prev, suffix = '' }: { cur: number; prev: number; suffix?: string }) {
-  if (!prev) return <span className="text-xs text-slate-400">—</span>
+/** Variation discrète : texte seul, vert ou rouge. */
+function Delta({ cur, prev }: { cur: number; prev: number }) {
+  if (!prev) return <span className="text-slate-400">—</span>
   const d = ((cur - prev) / prev) * 100
-  const up = d >= 0
   return (
-    <span className={cn('inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[11px] font-semibold', up ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700')}>
-      {up ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-      {Math.abs(d).toFixed(0)} %{suffix}
+    <span className={cn('font-medium tabular-nums', d >= 0 ? 'text-[var(--accent-text)]' : 'text-red-600')}>
+      {d >= 0 ? '+' : '−'}
+      {Math.abs(d).toFixed(0)} %
     </span>
   )
 }
 
 export function Dashboard({ onMenu }: { onMenu: () => void }) {
-  const { visible, state, setView } = useStore()
-  const { chart } = useTheme().theme
+  const { visible, state } = useStore()
+  const { chart } = useDesign().design
   const [period, setPeriod] = useState<Period>('3m')
 
   const data = useMemo(() => {
@@ -65,13 +64,9 @@ export function Dashboard({ onMenu }: { onMenu: () => void }) {
     const prevFrom = periodStart(period, 1).getTime()
     const now = Date.now()
     const cur = computeKpis(visible, from, now)
-    // Période précédente de même durée écoulée, pour une comparaison juste.
     const prev = computeKpis(visible, prevFrom, prevFrom + (now - from))
     const enEssai = visible.filter((p) => p.statut === 'Essai' && p.etat !== 'Clôture')
-    const essais = enEssai.length
-    const essaisNew = enEssai.filter((p) => t(p.essaiLe) > now - 14 * DAY).length
 
-    // Séries du graphique : par semaine sur « Ce mois », par mois sinon.
     const buckets: { label: string; from: number; to: number }[] = []
     if (period === '1m') {
       let s = startOfDay(from)
@@ -104,13 +99,8 @@ export function Dashboard({ onMenu }: { onMenu: () => void }) {
       { label: 'Mis en essai', value: c.filter(reachedEssai).length },
       { label: 'Facturés', value: c.filter((p) => p.statut === 'Facturé').length },
     ]
-
-    const byCentre = (Object.keys(CENTRES) as CentreId[]).map((id) => {
-      const k = computeKpis(visible.filter((p) => p.centre === id), from, now)
-      return { id, ...k }
-    })
-
-    return { cur, prev, essais, essaisNew, series, funnel, byCentre }
+    const byCentre = (Object.keys(CENTRES) as CentreId[]).map((id) => ({ id, ...computeKpis(visible.filter((p) => p.centre === id), from, now) }))
+    return { cur, prev, essais: enEssai.length, essaisNew: enEssai.filter((p) => t(p.essaiLe) > now - 14 * DAY).length, series, funnel, byCentre }
   }, [visible, period])
 
   const { cur, prev } = data
@@ -122,69 +112,41 @@ export function Dashboard({ onMenu }: { onMenu: () => void }) {
       <PageHeader
         onMenu={onMenu}
         title="Tableau de Bord"
-        subtitle={`${branchLabel} · Performance de vos campagnes d'acquisition`}
+        subtitle={branchLabel}
         actions={<Segmented value={period} onChange={setPeriod} options={PERIODS.map((p) => ({ value: p.value, label: p.label }))} />}
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Kpi icon={<Inbox size={18} />} iconCls="bg-indigo-50 text-indigo-600" label="Prospects reçus" value={formatInt(cur.recus)} foot={<><Delta cur={cur.recus} prev={prev.recus} /><span>vs période préc.</span></>} />
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <Kpi label="Prospects reçus" value={formatInt(cur.recus)} foot={<><Delta cur={cur.recus} prev={prev.recus} /> vs période préc.</>} />
+        <Kpi label="RDV pris" value={formatInt(cur.rdv)} foot={<><span className="text-slate-700">{formatPct(cur.conv)}</span> de conversion</>} />
+        <Kpi label="Essais en cours" value={formatInt(data.essais)} foot={<>{data.essaisNew} démarrés sur 14 jours</>} />
         <Kpi
-          icon={<CalendarCheck size={18} />}
-          iconCls="bg-violet-50 text-violet-600"
-          label="RDV pris"
-          value={formatInt(cur.rdv)}
-          extra={<span className="rounded-lg bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">{formatPct(cur.conv)} conv.</span>}
-          foot={<><Delta cur={cur.rdv} prev={prev.rdv} /><span>vs période préc.</span></>}
+          label="CA facturé"
+          value={formatEur(cur.ca)}
+          valueCls="text-[var(--accent-text)]"
+          foot={<><Delta cur={cur.ca} prev={prev.ca} /> · {cur.factures} patients</>}
         />
-        <Kpi
-          icon={<FlaskConical size={18} />}
-          iconCls="bg-amber-50 text-amber-600"
-          label="Essais en cours"
-          value={formatInt(data.essais)}
-          foot={<span>dont <b className="text-slate-700">{data.essaisNew}</b> démarrés ces 14 derniers jours</span>}
-        />
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 p-5 text-white shadow-lg shadow-emerald-500/20">
-          <div className="absolute -top-10 -right-10 h-36 w-36 rounded-full bg-white/10" />
-          <div className="absolute -right-4 -bottom-14 h-28 w-28 rounded-full bg-white/5" />
-          <div className="relative">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-emerald-50">CA facturé généré</span>
-              <span className="grid h-9 w-9 place-items-center rounded-xl bg-white/15"><Euro size={18} /></span>
-            </div>
-            <div className="mt-3 text-[28px] font-semibold tracking-tight tabular-nums">{formatEur(cur.ca)}</div>
-            <div className="mt-3 flex items-center gap-2 text-xs text-emerald-50">
-              <span className="rounded-md bg-white/15 px-1.5 py-0.5 font-semibold whitespace-nowrap">
-                {prev.ca ? `${cur.ca >= prev.ca ? '+' : ''}${(((cur.ca - prev.ca) / prev.ca) * 100).toFixed(0)} %` : '—'}
-              </span>
-              {cur.factures} patients · panier moyen {formatEur(cur.factures ? cur.ca / cur.factures : PANIER_MOYEN)}
-            </div>
-          </div>
-        </div>
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <Card className="p-5 xl:col-span-2">
-          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <Card className="p-6 xl:col-span-2">
+          <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="text-base font-semibold text-slate-900">Évolution du CA et des leads</h2>
-              <p className="text-sm text-slate-500">{period === '1m' ? 'Par semaine' : 'Par mois'} · CA = somme des paniers des patients facturés</p>
+              <h2 className="text-sm font-semibold text-slate-900">CA facturé et leads</h2>
+              <p className="mt-0.5 text-xs text-slate-400">{period === '1m' ? 'Par semaine' : 'Par mois'}</p>
             </div>
-            <div className="flex items-center gap-4 text-xs text-slate-600">
-              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: chart.primary }} /> CA facturé</span>
-              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: chart.secondary }} /> Leads</span>
+            <div className="flex items-center gap-4 text-xs text-slate-500">
+              <span className="flex items-center gap-1.5"><span className="h-0.5 w-3 rounded-full" style={{ background: chart.ca }} /> CA facturé</span>
+              <span className="flex items-center gap-1.5"><span className="h-0.5 w-3 rounded-full" style={{ background: chart.leads }} /> Leads</span>
             </div>
           </div>
-          <div className="h-[300px]">
+          <div className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data.series} margin={{ top: 5, right: 0, left: -10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="gCa" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={chart.primary} stopOpacity={0.28} />
-                    <stop offset="100%" stopColor={chart.primary} stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="gLeads" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={chart.secondary} stopOpacity={0.2} />
-                    <stop offset="100%" stopColor={chart.secondary} stopOpacity={0} />
+                    <stop offset="0%" stopColor={chart.ca} stopOpacity={chart.fill} />
+                    <stop offset="100%" stopColor={chart.ca} stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid vertical={false} stroke={chart.grid} />
@@ -192,120 +154,95 @@ export function Dashboard({ onMenu }: { onMenu: () => void }) {
                 <YAxis yAxisId="ca" tickLine={false} axisLine={false} tick={{ fill: chart.axis, fontSize: 12 }} tickFormatter={(v: number) => formatEurCompact(v)} width={64} />
                 <YAxis yAxisId="leads" orientation="right" tickLine={false} axisLine={false} tick={{ fill: chart.axis, fontSize: 12 }} width={32} allowDecimals={false} />
                 <Tooltip
-                  cursor={{ stroke: chart.cursor, strokeDasharray: '4 4' }}
+                  cursor={{ stroke: chart.cursor }}
                   content={({ active, payload, label }) =>
                     active && payload?.length ? (
-                      <div className="rounded-xl border border-slate-100 bg-white p-3 text-xs shadow-xl">
-                        <div className="mb-1.5 font-semibold text-slate-900 capitalize">{label}</div>
-                        <div className="flex items-center gap-2 text-slate-600"><span className="h-2 w-2 rounded-full bg-emerald-500" /> CA : <b className="text-slate-900">{formatEur(Number(payload.find((x) => x.dataKey === 'ca')?.value ?? 0))}</b></div>
-                        <div className="flex items-center gap-2 text-slate-600"><span className="h-2 w-2 rounded-full bg-indigo-500" /> Leads : <b className="text-slate-900">{String(payload.find((x) => x.dataKey === 'leads')?.value ?? 0)}</b></div>
+                      <div className="flat-overlay rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs shadow-md">
+                        <div className="mb-1 font-medium text-slate-900">{label}</div>
+                        <div className="text-slate-500">CA : <span className="font-medium text-slate-900">{formatEur(Number(payload.find((x) => x.dataKey === 'ca')?.value ?? 0))}</span></div>
+                        <div className="text-slate-500">Leads : <span className="font-medium text-slate-900">{String(payload.find((x) => x.dataKey === 'leads')?.value ?? 0)}</span></div>
                       </div>
                     ) : null
                   }
                 />
-                <Area yAxisId="ca" type="monotone" dataKey="ca" stroke={chart.primary} strokeWidth={2.5} fill="url(#gCa)" />
-                <Area yAxisId="leads" type="monotone" dataKey="leads" stroke={chart.secondary} strokeWidth={2} fill="url(#gLeads)" />
+                <Area yAxisId="leads" type="monotone" dataKey="leads" stroke={chart.leads} strokeWidth={1.5} fill="transparent" />
+                <Area yAxisId="ca" type="monotone" dataKey="ca" stroke={chart.ca} strokeWidth={2} fill="url(#gCa)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </Card>
 
-        <Card className="p-5">
-          <h2 className="text-base font-semibold text-slate-900">Entonnoir de conversion</h2>
-          <p className="mb-5 text-sm text-slate-500">Cohorte des leads reçus sur la période</p>
+        <Card className="p-6">
+          <h2 className="text-sm font-semibold text-slate-900">Entonnoir de conversion</h2>
+          <p className="mt-0.5 mb-6 text-xs text-slate-400">Leads reçus sur la période</p>
           <div className="space-y-4">
             {data.funnel.map((f, i) => {
-              const pct = (f.value / maxFunnel) * 100
-              const step = i > 0 && data.funnel[i - 1].value ? (f.value / data.funnel[i - 1].value) * 100 : null
               const last = i === data.funnel.length - 1
+              const step = i > 0 && data.funnel[i - 1].value ? (f.value / data.funnel[i - 1].value) * 100 : null
               return (
                 <div key={f.label}>
-                  <div className="mb-1.5 flex items-baseline justify-between text-sm">
-                    <span className="font-medium text-slate-700">{f.label}</span>
+                  <div className="mb-1.5 flex items-baseline justify-between text-[13px]">
+                    <span className="text-slate-600">{f.label}</span>
                     <span className="tabular-nums">
-                      <b className="text-slate-900">{formatInt(f.value)}</b>
-                      {step !== null && <span className="ml-2 text-xs text-slate-400">{step.toFixed(0)} %</span>}
+                      {step !== null && <span className="mr-2 text-xs text-slate-400">{step.toFixed(0)} %</span>}
+                      <span className="font-medium text-slate-900">{formatInt(f.value)}</span>
                     </span>
                   </div>
-                  <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      className={cn('h-full rounded-full transition-all duration-700', last ? 'bg-emerald-500' : 'bg-indigo-500')}
-                      style={{ width: `${Math.max(pct, 2)}%`, opacity: last ? 1 : 1 - i * 0.12 }}
-                    />
+                  <div className="h-1 overflow-hidden rounded-full bg-slate-100">
+                    <div className={cn('h-full rounded-full', last ? 'bg-[var(--accent-text)]' : 'bg-slate-300')} style={{ width: `${Math.max((f.value / maxFunnel) * 100, 1.5)}%` }} />
                   </div>
                 </div>
               )
             })}
           </div>
-          <div className="mt-6 rounded-xl bg-emerald-50 p-3 text-xs text-emerald-800">
-            Taux de transformation lead → patient facturé :{' '}
-            <b>{formatPct(data.funnel[0].value ? (data.funnel[5].value / data.funnel[0].value) * 100 : 0)}</b>
-          </div>
+          <p className="mt-6 border-t border-slate-100 pt-4 text-xs text-slate-500">
+            Lead → patient facturé :{' '}
+            <span className="font-semibold text-slate-900">{formatPct(data.funnel[0].value ? (data.funnel[5].value / data.funnel[0].value) * 100 : 0)}</span>
+          </p>
         </Card>
       </div>
 
       {state.branch === 'all' && (
         <Card className="mt-4 overflow-hidden">
-          <div className="flex items-center justify-between p-5 pb-3">
-            <div>
-              <h2 className="text-base font-semibold text-slate-900">Performance par centre</h2>
-              <p className="text-sm text-slate-500">Sur la période sélectionnée</p>
-            </div>
+          <div className="px-6 pt-5 pb-3">
+            <h2 className="text-sm font-semibold text-slate-900">Par centre</h2>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
-              <thead>
-                <tr className="border-y border-slate-100 bg-slate-50/60 text-left text-xs font-medium text-slate-500">
-                  <th className="px-5 py-2.5">Centre</th>
-                  <th className="px-5 py-2.5 text-right">Leads</th>
-                  <th className="px-5 py-2.5 text-right">RDV pris</th>
-                  <th className="px-5 py-2.5 text-right">Conversion</th>
-                  <th className="px-5 py-2.5 text-right">Facturés</th>
-                  <th className="px-5 py-2.5 text-right">CA</th>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-y border-slate-100 text-left text-xs text-slate-400">
+                <th className="px-6 py-2.5 font-medium">Centre</th>
+                <th className="px-3 py-2.5 text-right font-medium">Leads</th>
+                <th className="px-3 py-2.5 text-right font-medium">RDV</th>
+                <th className="hidden px-3 py-2.5 text-right font-medium sm:table-cell">Conversion</th>
+                <th className="hidden px-3 py-2.5 text-right font-medium sm:table-cell">Facturés</th>
+                <th className="px-6 py-2.5 text-right font-medium">CA</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.byCentre.map((c) => (
+                <tr key={c.id} className="border-b border-slate-50 last:border-0">
+                  <td className="px-6 py-3 text-slate-800">{CENTRES[c.id].court}</td>
+                  <td className="px-3 py-3 text-right text-slate-600 tabular-nums">{c.recus}</td>
+                  <td className="px-3 py-3 text-right text-slate-600 tabular-nums">{c.rdv}</td>
+                  <td className="hidden px-3 py-3 text-right text-slate-600 tabular-nums sm:table-cell">{formatPct(c.conv)}</td>
+                  <td className="hidden px-3 py-3 text-right text-slate-600 tabular-nums sm:table-cell">{c.factures}</td>
+                  <td className="px-6 py-3 text-right font-medium text-slate-900 tabular-nums">{formatEur(c.ca)}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {data.byCentre.map((c) => (
-                  <tr key={c.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
-                    <td className="px-5 py-3 font-medium text-slate-800">{CENTRES[c.id].nom}</td>
-                    <td className="px-5 py-3 text-right tabular-nums">{c.recus}</td>
-                    <td className="px-5 py-3 text-right tabular-nums">{c.rdv}</td>
-                    <td className="px-5 py-3 text-right tabular-nums">
-                      <span className="inline-flex items-center gap-2">
-                        <span className="hidden h-1.5 w-16 overflow-hidden rounded-full bg-slate-100 sm:inline-block">
-                          <span className="block h-full rounded-full bg-indigo-500" style={{ width: `${Math.min(c.conv * 1.6, 100)}%` }} />
-                        </span>
-                        {formatPct(c.conv)}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-right tabular-nums">{c.factures}</td>
-                    <td className="px-5 py-3 text-right font-semibold text-emerald-600 tabular-nums">{formatEur(c.ca)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <button onClick={() => setView('prospects')} className="w-full cursor-pointer border-t border-slate-100 py-3 text-sm font-medium text-indigo-600 hover:bg-slate-50">
-            Voir tous les prospects →
-          </button>
+              ))}
+            </tbody>
+          </table>
         </Card>
       )}
     </>
   )
 }
 
-function Kpi({ icon, iconCls, label, value, extra, foot }: { icon: React.ReactNode; iconCls: string; label: string; value: string; extra?: React.ReactNode; foot: React.ReactNode }) {
+function Kpi({ label, value, foot, valueCls }: { label: string; value: string; foot: React.ReactNode; valueCls?: string }) {
   return (
     <Card className="p-5">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-slate-500">{label}</span>
-        <span className={cn('grid h-9 w-9 place-items-center rounded-xl', iconCls)}>{icon}</span>
-      </div>
-      <div className="mt-3 flex items-baseline gap-2">
-        <span className="text-[28px] font-semibold tracking-tight text-slate-900 tabular-nums">{value}</span>
-        {extra}
-      </div>
-      <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">{foot}</div>
+      <div className="text-[13px] text-slate-500">{label}</div>
+      <div className={cn('mt-2 text-[26px] font-semibold tracking-tight tabular-nums', valueCls ?? 'text-slate-900')}>{value}</div>
+      <div className="mt-2 text-xs text-slate-400">{foot}</div>
     </Card>
   )
 }
