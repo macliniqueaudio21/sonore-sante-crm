@@ -54,7 +54,7 @@ function Row({ p, late }: { p: Prospect; late: boolean }) {
         <div className="flex flex-wrap items-baseline gap-x-3">
           <button onClick={() => select(p.id)} className="cursor-pointer font-medium text-slate-900 hover:underline">{fullName(p)}</button>
           <span className="text-[13px] text-slate-400">{p.ville}</span>
-          <a href={`tel:${p.telephone.replace(/\s/g, '')}`} className="text-[13px] text-slate-600 tabular-nums hover:text-[var(--accent-text)]">{p.telephone}</a>
+          <a href={`tel:${p.telephone.replace(/\s/g, '')}`} className="text-[13px] whitespace-nowrap text-slate-600 tabular-nums hover:text-emerald-700">{p.telephone}</a>
         </div>
         {last && <p className="mt-1 truncate text-[13px] text-slate-500">{last.texte}</p>}
       </div>
@@ -88,7 +88,7 @@ function MoreMenu({ p }: { p: Prospect }) {
         <MoreHorizontal size={16} />
       </Button>
       {open && (
-        <div className="animate-pop-in flat-overlay absolute top-full right-0 z-20 mt-1 w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
+        <div className="animate-pop-in absolute top-full right-0 z-20 mt-1 w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
           {ETATS_SORTIE.map((e) => (
             <button key={e} onClick={() => set(e)} className="block w-full cursor-pointer rounded-md px-2.5 py-1.5 text-left text-[13px] text-slate-600 hover:bg-slate-50">
               {e}

@@ -3,13 +3,14 @@ import { Phone } from 'lucide-react'
 import { useStore } from '../store'
 import { ETATS_SORTIE, KANBAN_ETATS } from '../data/constants'
 import type { EtatProspect, Prospect } from '../data/types'
-import { ageHours, cn, formatAge, fullName } from '../lib/utils'
+import { ageHours, cn, formatAge, fullName, initials } from '../lib/utils'
 import { EmptyState, PageHeader } from '../components/ui'
 
-const COLS: { etat: EtatProspect; hint: string }[] = [
-  { etat: 'Nouveau lead', hint: 'À appeler sous 2 h' },
-  { etat: 'NRP 1', hint: '1re tentative sans réponse' },
-  { etat: 'NRP 2', hint: '2e tentative sans réponse' },
+/** border : liseré gauche des cartes · tint : plateau teinté (style « Plateaux Pastel ») */
+const COLS: { etat: EtatProspect; hint: string; border: string; tint: string; dot: string }[] = [
+  { etat: 'Nouveau lead', hint: 'À appeler sous 2 h', border: 'border-l-emerald-500', tint: 'tint-new', dot: 'bg-emerald-500' },
+  { etat: 'NRP 1', hint: '1re tentative sans réponse', border: 'border-l-amber-400', tint: 'tint-nrp1', dot: 'bg-amber-400' },
+  { etat: 'NRP 2', hint: '2e tentative sans réponse', border: 'border-l-orange-500', tint: 'tint-nrp2', dot: 'bg-orange-500' },
 ]
 
 export function Kanban({ onMenu }: { onMenu: () => void }) {
@@ -54,17 +55,18 @@ export function Kanban({ onMenu }: { onMenu: () => void }) {
                 const p = state.prospects.find((x) => x.id === e.dataTransfer.getData('text/plain'))
                 if (p) move(p, col.etat)
               }}
-              className={cn('min-h-[240px] rounded-xl transition-colors', dragOver === col.etat && 'bg-slate-100')}
+              className={cn('min-h-[240px] rounded-2xl p-2 transition-colors', col.tint, dragOver === col.etat && 'bg-emerald-50/60')}
             >
-              <header className="mb-3 flex items-baseline justify-between px-1">
-                <h2 className="text-sm font-semibold text-slate-900">
+              <header className="mb-3 flex items-center justify-between px-1.5 pt-1">
+                <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                  <span className={cn('h-2 w-2 rounded-full', col.dot)} />
                   {col.etat} <span className="ml-1 font-normal text-slate-400 tabular-nums">{cards.length}</span>
                 </h2>
                 <span className="text-xs text-slate-400">{col.hint}</span>
               </header>
               <div className="flex flex-col gap-2">
                 {cards.map((p) => (
-                  <LeadCard key={p.id} p={p} />
+                  <LeadCard key={p.id} p={p} border={col.border} />
                 ))}
                 {cards.length === 0 && (
                   <div className="rounded-xl border border-dashed border-slate-200">
@@ -81,7 +83,7 @@ export function Kanban({ onMenu }: { onMenu: () => void }) {
 }
 
 /** Carte épurée : nom, ville, ancienneté, téléphone et une seule action. */
-function LeadCard({ p }: { p: Prospect }) {
+function LeadCard({ p, border }: { p: Prospect; border: string }) {
   const { select } = useStore()
   // Le délai de 2 h ne concerne que les nouveaux leads.
   const late = p.etat === 'Nouveau lead' && ageHours(p.createdAt) > 2
@@ -90,22 +92,25 @@ function LeadCard({ p }: { p: Prospect }) {
       draggable
       onDragStart={(e) => e.dataTransfer.setData('text/plain', p.id)}
       onClick={() => select(p.id)}
-      className="card-surface group cursor-pointer p-3.5 transition-colors hover:border-slate-300"
+      className={cn('card-surface group cursor-pointer border-l-[3px] p-3.5 transition-shadow hover:shadow-md', border)}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="truncate text-sm font-medium text-slate-900">{fullName(p)}</div>
-          <div className="truncate text-xs text-slate-400">{p.ville}</div>
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-emerald-100 text-[11px] font-semibold text-emerald-800">{initials(p)}</span>
+          <div className="min-w-0">
+            <div className="truncate text-sm font-medium text-slate-900">{fullName(p)}</div>
+            <div className="truncate text-xs text-slate-400">{p.ville}</div>
+          </div>
         </div>
         <span title={`Reçu il y a ${formatAge(p.createdAt)}`} className={cn('shrink-0 text-xs tabular-nums', late ? 'font-medium text-red-600' : 'text-slate-400')}>
           {formatAge(p.createdAt)}
         </span>
       </div>
-      <div className="mt-3 flex items-center justify-between gap-2">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
         <a
           href={`tel:${p.telephone.replace(/\s/g, '')}`}
           onClick={(e) => e.stopPropagation()}
-          className="inline-flex items-center gap-1.5 text-[13px] text-slate-700 tabular-nums hover:text-[var(--accent-text)]"
+          className="inline-flex min-w-0 items-center gap-1.5 text-[13px] whitespace-nowrap text-slate-700 tabular-nums hover:text-emerald-700"
         >
           <Phone size={13} strokeWidth={1.75} className="text-slate-400" />
           {p.telephone}
@@ -144,13 +149,13 @@ function QualifyMenu({ p }: { p: Prospect }) {
     <div ref={ref} className="relative" onClick={(e) => e.stopPropagation()}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="h-7 cursor-pointer rounded-md border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900"
+        className="h-7 shrink-0 cursor-pointer rounded-md border border-emerald-200 bg-emerald-50 px-2.5 text-xs font-medium whitespace-nowrap text-emerald-700 transition-colors hover:border-emerald-600 hover:bg-emerald-600 hover:text-white"
         aria-expanded={open}
       >
         Qualifier / RDV
       </button>
       {open && (
-        <div className="animate-pop-in flat-overlay absolute top-full right-0 z-20 mt-1 w-48 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
+        <div className="animate-pop-in absolute top-full right-0 z-20 mt-1 w-48 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
           <Item strong onClick={() => { setOpen(false); openRdv(p.id) }}>Fixer un RDV</Item>
           {next && <Item onClick={() => set(next)}>Passer en {next}</Item>}
           <Item onClick={() => { setOpen(false); openRelance(p.id) }}>Relance phoning…</Item>

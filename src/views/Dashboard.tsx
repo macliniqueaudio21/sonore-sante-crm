@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { CalendarCheck, Euro, FlaskConical, Inbox } from 'lucide-react'
 import { useStore } from '../store'
 import { BRANCHES, CENTRES } from '../data/constants'
 import type { CentreId, Prospect } from '../data/types'
@@ -117,10 +118,12 @@ export function Dashboard({ onMenu }: { onMenu: () => void }) {
       />
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <Kpi label="Prospects reçus" value={formatInt(cur.recus)} foot={<><Delta cur={cur.recus} prev={prev.recus} /> vs période préc.</>} />
-        <Kpi label="RDV pris" value={formatInt(cur.rdv)} foot={<><span className="text-slate-700">{formatPct(cur.conv)}</span> de conversion</>} />
-        <Kpi label="Essais en cours" value={formatInt(data.essais)} foot={<>{data.essaisNew} démarrés sur 14 jours</>} />
+        <Kpi tint={1} icon={<Inbox size={17} />} label="Prospects reçus" value={formatInt(cur.recus)} foot={<><Delta cur={cur.recus} prev={prev.recus} /> vs période préc.</>} />
+        <Kpi tint={2} icon={<CalendarCheck size={17} />} label="RDV pris" value={formatInt(cur.rdv)} foot={<><span className="text-slate-700">{formatPct(cur.conv)}</span> de conversion</>} />
+        <Kpi tint={3} icon={<FlaskConical size={17} />} label="Essais en cours" value={formatInt(data.essais)} foot={<>{data.essaisNew} démarrés sur 14 jours</>} />
         <Kpi
+          tint={4}
+          icon={<Euro size={17} />}
           label="CA facturé"
           value={formatEur(cur.ca)}
           valueCls="text-[var(--accent-text)]"
@@ -146,7 +149,7 @@ export function Dashboard({ onMenu }: { onMenu: () => void }) {
                 <defs>
                   <linearGradient id="gCa" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={chart.ca} stopOpacity={chart.fill} />
-                    <stop offset="100%" stopColor={chart.ca} stopOpacity={0} />
+                    <stop offset="100%" stopColor={chart.ca} stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid vertical={false} stroke={chart.grid} />
@@ -157,7 +160,7 @@ export function Dashboard({ onMenu }: { onMenu: () => void }) {
                   cursor={{ stroke: chart.cursor }}
                   content={({ active, payload, label }) =>
                     active && payload?.length ? (
-                      <div className="flat-overlay rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs shadow-md">
+                      <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs shadow-md">
                         <div className="mb-1 font-medium text-slate-900">{label}</div>
                         <div className="text-slate-500">CA : <span className="font-medium text-slate-900">{formatEur(Number(payload.find((x) => x.dataKey === 'ca')?.value ?? 0))}</span></div>
                         <div className="text-slate-500">Leads : <span className="font-medium text-slate-900">{String(payload.find((x) => x.dataKey === 'leads')?.value ?? 0)}</span></div>
@@ -166,7 +169,7 @@ export function Dashboard({ onMenu }: { onMenu: () => void }) {
                   }
                 />
                 <Area yAxisId="leads" type="monotone" dataKey="leads" stroke={chart.leads} strokeWidth={1.5} fill="transparent" />
-                <Area yAxisId="ca" type="monotone" dataKey="ca" stroke={chart.ca} strokeWidth={2} fill="url(#gCa)" />
+                <Area yAxisId="ca" type="monotone" dataKey="ca" stroke={chart.ca} strokeWidth={2.5} fill="url(#gCa)" activeDot={{ r: 4, fill: chart.ca, stroke: "#fff", strokeWidth: 2 }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -189,7 +192,7 @@ export function Dashboard({ onMenu }: { onMenu: () => void }) {
                     </span>
                   </div>
                   <div className="h-1 overflow-hidden rounded-full bg-slate-100">
-                    <div className={cn('h-full rounded-full', last ? 'bg-[var(--accent-text)]' : 'bg-slate-300')} style={{ width: `${Math.max((f.value / maxFunnel) * 100, 1.5)}%` }} />
+                    <div className={cn('h-full rounded-full', last ? 'bg-emerald-500' : 'bg-emerald-200')} style={{ width: `${Math.max((f.value / maxFunnel) * 100, 1.5)}%` }} />
                   </div>
                 </div>
               )
@@ -237,11 +240,14 @@ export function Dashboard({ onMenu }: { onMenu: () => void }) {
   )
 }
 
-function Kpi({ label, value, foot, valueCls }: { label: string; value: string; foot: React.ReactNode; valueCls?: string }) {
+function Kpi({ label, value, foot, valueCls, icon, tint }: { label: string; value: string; foot: React.ReactNode; valueCls?: string; icon: React.ReactNode; tint: number }) {
   return (
-    <Card className="p-5">
-      <div className="text-[13px] text-slate-500">{label}</div>
-      <div className={cn('mt-2 text-[26px] font-semibold tracking-tight tabular-nums', valueCls ?? 'text-slate-900')}>{value}</div>
+    <Card className={cn('p-5', `kpi-tint-${tint}`)}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="text-[13px] text-slate-500">{label}</div>
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-600">{icon}</span>
+      </div>
+      <div className={cn('-mt-1 text-[26px] font-semibold tracking-tight tabular-nums', valueCls ?? 'text-slate-900')}>{value}</div>
       <div className="mt-2 text-xs text-slate-400">{foot}</div>
     </Card>
   )

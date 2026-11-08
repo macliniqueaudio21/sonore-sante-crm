@@ -22,14 +22,11 @@ body {
 .animate-pop-in { animation: pop-in .2s cubic-bezier(.2,.8,.2,1) }
 
 /* ===================================================================== */
-/* 3 architectures de design. Les composants utilisent des classes       */
-/* Tailwind standard + quelques jetons ci-dessous ; chaque design les     */
-/* redéfinit (palette neutre, accent, bordures, ombres, rayons, taille).  */
+/* 3 styles sur une même structure épurée. Les composants lisent ces      */
+/* jetons ; les classes emerald-* de Tailwind gardent leurs vraies teintes.*/
 /* ===================================================================== */
 :root {
   --app-bg: #F8FAFC;
-  --nav-bg: #FFFFFF;
-  --nav-border: #E2E8F0;
   --card-border: #E2E8F0;
   --card-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   --card-radius: 0.875rem;
@@ -39,59 +36,51 @@ body {
   --accent-soft: #ECFDF5;
   --accent-soft-text: #047857;
 
-  /* Accent unique : l'ancienne palette émeraude pointe sur l'accent. */
-  --color-emerald-50: var(--accent-soft);
-  --color-emerald-100: var(--accent-soft);
-  --color-emerald-500: var(--accent);
-  --color-emerald-600: var(--accent-text);
-  --color-emerald-700: var(--accent-soft-text);
+  /* Barre latérale — Émeraude Clair */
+  --nav-bg: #FFFFFF;
+  --nav-border: #E2E8F0;
+  --nav-title: #0F172A;
+  --nav-sub: #94A3B8;
+  --nav-text: #475569;
+  --nav-muted: #94A3B8;
+  --nav-hover-bg: #F1F5F9;
+  --nav-active-bg: #ECFDF5;
+  --nav-active-text: #047857;
+  --nav-active-bar: #059669;
+  --nav-input-bg: #FFFFFF;
+  --nav-input-border: #E2E8F0;
+  --nav-logo: #059669;
+  --nav-avatar-bg: #D1FAE5;
+  --nav-avatar-text: #065F46;
 }
 
-/* Design 2 — Pleine largeur (Top Navigation), vert forêt / sauge */
-:root[data-design="topnav"] {
-  --app-bg: #F7F8F7;
-  --nav-border: #E5E7EB;
-  --card-border: #E5E7EB;
-  --card-shadow: none;
-  --card-radius: 0.75rem;
-  --accent: #047857;
-  --accent-hover: #065F46;
-  --accent-text: #047857;
-  --accent-soft: #EEF5F1;
-  --accent-soft-text: #065F46;
+/* Forêt & Blanc : sidebar vert forêt profond qui encadre l'écran */
+:root[data-design="forest"] {
+  --nav-bg: #062E22;
+  --nav-border: #062E22;
+  --nav-title: #FFFFFF;
+  --nav-sub: rgba(255, 255, 255, 0.5);
+  --nav-text: rgba(255, 255, 255, 0.78);
+  --nav-muted: rgba(255, 255, 255, 0.45);
+  --nav-hover-bg: rgba(255, 255, 255, 0.06);
+  --nav-active-bg: #10B981;
+  --nav-active-text: #FFFFFF;
+  --nav-active-bar: #A7F3D0;
+  --nav-input-bg: rgba(255, 255, 255, 0.06);
+  --nav-input-border: rgba(255, 255, 255, 0.12);
+  --nav-logo: #10B981;
+  --nav-avatar-bg: rgba(16, 185, 129, 0.25);
+  --nav-avatar-text: #A7F3D0;
 }
 
-/* Design 3 — Minimaliste Suisse : plat, bordures 1 px, gris zinc, texte plus petit */
-:root[data-design="swiss"] {
-  font-size: 14px;
-  --app-bg: #FFFFFF;
-  --nav-bg: #FAFAFA;
-  --nav-border: #E4E4E7;
-  --card-border: #E4E4E7;
-  --card-shadow: none;
-  --card-radius: 6px;
-  --radius-lg: 5px;
-  --radius-xl: 6px;
-  --radius-2xl: 8px;
-  --accent: #18181B;
-  --accent-hover: #27272A;
-  --accent-text: #047857;
-  --accent-soft: #F4F4F5;
-  --accent-soft-text: #18181B;
-  --color-slate-50: #fafafa;
-  --color-slate-100: #f4f4f5;
-  --color-slate-200: #e4e4e7;
-  --color-slate-300: #d4d4d8;
-  --color-slate-400: #a1a1aa;
-  --color-slate-500: #71717a;
-  --color-slate-600: #52525b;
-  --color-slate-700: #3f3f46;
-  --color-slate-800: #27272a;
-  --color-slate-900: #18181b;
-  letter-spacing: -0.005em;
-}
-:root[data-design="swiss"] * { --tw-shadow: 0 0 #0000 !important; }
-:root[data-design="swiss"] .flat-overlay { border: 1px solid #E4E4E7; }
+/* Plateaux Pastel : colonnes Kanban et cartes KPI légèrement teintées */
+:root[data-design="pastel"] .tint-new { background: #F0FDF4; }
+:root[data-design="pastel"] .tint-nrp1 { background: #FFFBEB; }
+:root[data-design="pastel"] .tint-nrp2 { background: #FFF7ED; }
+:root[data-design="pastel"] .kpi-tint-1 { background: #F0FDF4; border-color: #DCFCE7; }
+:root[data-design="pastel"] .kpi-tint-2 { background: #F0F9FF; border-color: #E0F2FE; }
+:root[data-design="pastel"] .kpi-tint-3 { background: #FFFBEB; border-color: #FEF3C7; }
+:root[data-design="pastel"] .kpi-tint-4 { background: #ECFDF5; border-color: #D1FAE5; }
 
 body, .bg-app { background: var(--app-bg); }
 
@@ -115,12 +104,6 @@ body, .bg-app { background: var(--app-bg); }
     font-size: 11px;
     font-weight: 500;
     color: var(--color-slate-700);
-  }
-  :root[data-design="swiss"] .badge-dot {
-    border-radius: 4px;
-    background: #fff;
-    box-shadow: inset 0 0 0 1px #E4E4E7;
-    padding: 0.0625rem 0.375rem;
   }
   .scrollbar-none { scrollbar-width: none; }
   .scrollbar-none::-webkit-scrollbar { display: none; }

@@ -1,45 +1,26 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
-/** 3 architectures de design : chacune change la structure ET le style. */
-export type DesignId = 'clean' | 'topnav' | 'swiss'
+/** 3 styles de design, tous sur la même structure épurée (sidebar + zone blanche). */
+export type DesignId = 'emerald' | 'forest' | 'pastel'
 
 export interface DesignDef {
   id: DesignId
   nom: string
-  court: string
   description: string
-  layout: 'sidebar' | 'topnav'
+  /** Aperçu du sélecteur : [sidebar, accent] */
+  swatch: [string, string]
   chart: { ca: string; leads: string; grid: string; axis: string; cursor: string; fill: number }
 }
 
+const CHART = { ca: '#10B981', leads: '#CBD5E1', grid: '#F1F5F9', axis: '#94A3B8', cursor: '#D1FAE5', fill: 0.35 }
+
 export const DESIGNS: DesignDef[] = [
-  {
-    id: 'clean',
-    nom: 'Épuré Blanc & Vert',
-    court: 'Épuré',
-    description: 'Sidebar blanche fine, accent émeraude',
-    layout: 'sidebar',
-    chart: { ca: '#059669', leads: '#CBD5E1', grid: '#F1F5F9', axis: '#94A3B8', cursor: '#E2E8F0', fill: 0.12 },
-  },
-  {
-    id: 'topnav',
-    nom: 'Pleine Largeur',
-    court: 'Top Nav',
-    description: 'Navigation en haut, contenu pleine largeur',
-    layout: 'topnav',
-    chart: { ca: '#047857', leads: '#D1D5DB', grid: '#F3F4F6', axis: '#9CA3AF', cursor: '#E5E7EB', fill: 0.1 },
-  },
-  {
-    id: 'swiss',
-    nom: 'Minimaliste Suisse',
-    court: 'Suisse',
-    description: 'Ultra-plat, bordures 1 px, typographie précise',
-    layout: 'sidebar',
-    chart: { ca: '#18181B', leads: '#D4D4D8', grid: '#F4F4F5', axis: '#A1A1AA', cursor: '#E4E4E7', fill: 0 },
-  },
+  { id: 'emerald', nom: 'Émeraude Clair', description: 'Sidebar blanche, rappels de vert émeraude', swatch: ['#FFFFFF', '#059669'], chart: CHART },
+  { id: 'forest', nom: 'Forêt & Blanc', description: 'Sidebar vert forêt profond, zone blanche aérée', swatch: ['#062E22', '#10B981'], chart: CHART },
+  { id: 'pastel', nom: 'Plateaux Pastel', description: 'Colonnes Kanban et KPI teintés tout en douceur', swatch: ['#FFFFFF', '#FDE68A'], chart: CHART },
 ]
 
-const KEY = 'sonore-design'
+const KEY = 'sonore-style'
 function readStored(): DesignId {
   try {
     const v = localStorage.getItem(KEY)
@@ -47,7 +28,7 @@ function readStored(): DesignId {
   } catch {
     /* stockage indisponible */
   }
-  return 'clean'
+  return 'emerald'
 }
 
 const Ctx = createContext<{ design: DesignDef; setDesign: (id: DesignId) => void } | null>(null)

@@ -4,7 +4,7 @@ import { useStore } from '../store'
 import { CENTRES, ETATS, STATUTS } from '../data/constants'
 import type { EtatProspect, StatutSuivi } from '../data/types'
 import { formatAge, formatDate, fullName } from '../lib/utils'
-import { Button, Card, EmptyState, EtatBadge, PageHeader, StatutBadge, inputCls } from '../components/ui'
+import { Button, Card, EmptyState, EtatBadge, Initials, PageHeader, StatutBadge, inputCls } from '../components/ui'
 
 const PAGE = 25
 
@@ -87,9 +87,9 @@ export function AllProspects({ onMenu }: { onMenu: () => void }) {
               </thead>
               <tbody>
                 {rows.map((p) => (
-                  <tr key={p.id} onClick={() => select(p.id)} className="cursor-pointer border-b border-slate-50 last:border-0 hover:bg-slate-50/70">
+                  <tr key={p.id} onClick={() => select(p.id)} className="cursor-pointer border-b border-slate-50 last:border-0 transition-colors hover:bg-emerald-50/40">
                     <td className="px-5 py-3">
-                      <span className="font-medium text-slate-900">{fullName(p)}</span>
+                      <span className="flex items-center gap-2.5"><Initials prenom={p.prenom} nom={p.nom} green={p.statut !== null} /><span className="font-medium text-slate-900">{fullName(p)}</span></span>
                     </td>
                     <td className="hidden px-5 py-3 whitespace-nowrap text-slate-600 tabular-nums md:table-cell">{p.telephone}</td>
                     <td className="hidden px-5 py-3 text-slate-500 lg:table-cell">{p.ville}</td>

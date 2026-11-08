@@ -226,7 +226,7 @@ export function ProspectDrawer() {
   return (
     <div className="fixed inset-0 z-50">
       <div className="animate-fade-in absolute inset-0 bg-slate-900/20" onClick={() => select(null)} />
-      <aside className="animate-slide-in-right absolute inset-y-0 right-0 flat-overlay flex w-full max-w-[480px] flex-col bg-app shadow-xl">
+      <aside className="animate-slide-in-right absolute inset-y-0 right-0 flex w-full max-w-[480px] flex-col bg-app shadow-xl">
         <div className="flex items-start gap-4 border-b border-[var(--card-border)] bg-white p-6">
           <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-slate-100 text-sm font-semibold text-slate-600">
             {initials(p)}

@@ -3,7 +3,7 @@ import { CalendarCheck } from 'lucide-react'
 import { useStore } from '../store'
 import type { Prospect, StatutSuivi } from '../data/types'
 import { cn, formatDate, formatEur, formatTime, fullName } from '../lib/utils'
-import { Card, EmptyState, PageHeader, PanierInput, StatutSelect, Switch, TextTabs, essaiJours } from '../components/ui'
+import { Card, EmptyState, Initials, PageHeader, PanierInput, StatutSelect, Switch, TextTabs, essaiJours } from '../components/ui'
 
 type Tab = 'all' | StatutSuivi
 const TABS: { value: Tab; label: string }[] = [
@@ -64,7 +64,7 @@ export function Parcours({ onMenu }: { onMenu: () => void }) {
             <table className="hidden w-full table-fixed text-sm md:table">
               <colgroup>
                 <col />
-                <col className="w-[130px]" />
+                <col className="w-[135px]" />
                 <col className="w-[170px]" />
                 <col className="w-[175px]" />
                 <col className="w-[110px]" />
@@ -152,13 +152,14 @@ function Row({ p }: { p: Prospect }) {
   const { select } = useStore()
   const a = useRowActions(p)
   return (
-    <tr className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60">
+    <tr className="border-b border-slate-50 transition-colors last:border-0 hover:bg-emerald-50/40">
       <td className="truncate px-5 py-2.5">
-        <button onClick={() => select(p.id)} className="cursor-pointer truncate font-medium text-slate-900 hover:underline">
-          {fullName(p)}
+        <button onClick={() => select(p.id)} className="flex max-w-full cursor-pointer items-center gap-2.5 font-medium text-slate-900 hover:text-emerald-700">
+          <Initials prenom={p.prenom} nom={p.nom} green={p.statut === 'Facturé' || p.statut === 'Essai'} />
+          <span className="truncate">{fullName(p)}</span>
         </button>
       </td>
-      <td className="truncate px-3 py-2.5 text-[13px] text-slate-600 tabular-nums">{p.telephone}</td>
+      <td className="truncate px-3 py-2.5 text-[13px] whitespace-nowrap text-slate-600 tabular-nums">{p.telephone}</td>
       <td className="px-3 py-2.5"><RdvDate p={p} /></td>
       <td className="px-3 py-2.5"><StatutSelect value={p.statut} onChange={a.changeStatut} className="w-full" /></td>
       <td className="px-3 py-2.5"><PanierInput value={p.panier} onCommit={a.setPanier} /></td>
@@ -176,7 +177,7 @@ function MobileRow({ p }: { p: Prospect }) {
         <button onClick={() => select(p.id)} className="cursor-pointer truncate text-left font-medium text-slate-900">{fullName(p)}</button>
         <RdvDate p={p} />
       </div>
-      <div className="text-[13px] text-slate-500 tabular-nums">{p.telephone}</div>
+      <div className="text-[13px] whitespace-nowrap text-slate-500 tabular-nums">{p.telephone}</div>
       <div className={cn('grid grid-cols-[1fr_110px] gap-2')}>
         <StatutSelect value={p.statut} onChange={a.changeStatut} className="w-full" />
         <PanierInput value={p.panier} onCommit={a.setPanier} />

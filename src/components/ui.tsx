@@ -3,7 +3,6 @@ import { X } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { CENTRES, ETAT_DOT, STATUTS, STATUT_DOT } from '../data/constants'
 import type { CentreId, EtatProspect, StatutSuivi } from '../data/types'
-import { useDesign } from '../design'
 
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
   return <div className={cn('card-surface', className)}>{children}</div>
@@ -66,11 +65,10 @@ export function PageHeader({
   actions?: ReactNode
   onMenu?: () => void
 }) {
-  const { design } = useDesign()
   return (
     <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="flex items-start gap-3">
-        {onMenu && design.layout === 'sidebar' && (
+        {onMenu && (
           <button
             onClick={onMenu}
             className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-slate-700 lg:hidden"
@@ -175,7 +173,7 @@ export function Modal({
   return (
     <div className="fixed inset-0 z-50 grid place-items-center p-4">
       <div className="animate-fade-in absolute inset-0 bg-slate-900/20" onClick={onClose} />
-      <div className="animate-pop-in flat-overlay relative w-full max-w-md rounded-2xl bg-white shadow-xl">
+      <div className="animate-pop-in relative w-full max-w-md rounded-2xl bg-white shadow-xl">
         <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-5">
           <div>
             <h2 className="text-base font-semibold text-slate-900">{title}</h2>
@@ -306,5 +304,19 @@ export function EssaiGauge({ since }: { since?: string }) {
       </div>
       <span className="text-xs text-slate-500 tabular-nums">J+{j}/30</span>
     </div>
+  )
+}
+
+/** Pastille d'initiales : verte pour un patient (statut suivi renseigné), grise pour un prospect. */
+export function Initials({ prenom, nom, green }: { prenom: string; nom: string; green: boolean }) {
+  return (
+    <span
+      className={cn(
+        'grid h-7 w-7 shrink-0 place-items-center rounded-full text-[10.5px] font-semibold',
+        green ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500',
+      )}
+    >
+      {`${prenom[0] ?? ''}${nom[0] ?? ''}`.toUpperCase()}
+    </span>
   )
 }

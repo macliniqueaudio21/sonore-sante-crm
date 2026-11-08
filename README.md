@@ -34,16 +34,15 @@ src/
 - **CA** : chaque patient « Facturé » compte 2 500 €.
 - Le sélecteur de centre filtre toute l'application (vues, KPI, badges du menu).
 
-## 3 architectures de design
+## 3 styles
 
-Un sélecteur discret (en bas à droite) change la structure **et** le style de toute l'application :
+Un sélecteur discret (en bas à droite) change le style de toute l'application, sur la même structure épurée :
 
-1. **Épuré Blanc & Vert** (par défaut) : sidebar blanche fine (220 px), fond #F8FAFC, accent unique #059669.
-2. **Pleine Largeur** : plus de sidebar, navigation horizontale de 64 px en haut, contenu sur toute la largeur, accent #047857.
-3. **Minimaliste Suisse** : ultra-plat, sans ombres, bordures 1 px #E4E4E7, typographie plus petite.
+1. **Émeraude Clair** (par défaut) : sidebar blanche, onglet actif vert doux, rappels de vert émeraude.
+2. **Forêt & Blanc** : sidebar vert forêt profond (#062E22), onglet actif émeraude lumineux.
+3. **Plateaux Pastel** : colonnes du Kanban et cartes KPI légèrement teintées (menthe, crème ambrée, pêche).
 
-Les badges sont monochromes, avec un petit point de couleur pour le statut. Les jetons de chaque design
-(accent, bordures, ombres, rayons, gris) sont dans `src/index.css` ; la structure (sidebar ou barre du haut)
-et les couleurs des graphiques sont dans `src/design.tsx`. Le choix est mémorisé dans le navigateur.
+Les jetons de chaque style sont dans `src/index.css`, la liste des styles et les couleurs des graphiques
+dans `src/design.tsx`. Le choix est mémorisé dans le navigateur.
 
 Les modifications (changement d'état, RDV, notes…) sont gardées en mémoire et réinitialisées au rechargement de la page.
