@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useReducer, type ReactNode } from 'react'
 import { INITIAL_PROSPECTS } from './data/mock'
-import { CURRENT_USER, KANBAN_ETATS } from './data/constants'
-import type { BranchId, EtatProspect, Prospect, StatutSuivi, ViewId } from './data/types'
+import { CENTRES, CURRENT_USER, KANBAN_ETATS, isAppareillage } from './data/constants'
+import type { BranchId, CentreId, EtatProspect, Prospect, StatutSuivi, ViewId } from './data/types'
 import { inBranch, rappelBucket } from './lib/utils'
 
 export interface Toast {
@@ -32,18 +32,20 @@ type Action =
   | { type: 'dismiss'; id: number }
 
 /**
- * Simule les automatisations (Onoff pour les SMS) déclenchées par un changement :
- * SMS NRP 1 / NRP 2, SMS de confirmation RDV, SMS d'avis Google, et dates d'étape.
+ * Simule les automatisations déclenchées par un changement : SMS NRP 1 / NRP 2,
+ * SMS de confirmation RDV, SMS d'avis Google (essai / facturé uniquement) et dates d'étape.
  */
 function applyAutomations(before: Prospect, next: Prospect): Prospect {
   const now = new Date().toISOString()
   const sms = { ...next.sms }
   if (next.etat === 'NRP 1' && before.etat !== 'NRP 1' && !sms.nrp1) sms.nrp1 = now
   if (next.etat === 'NRP 2' && before.etat !== 'NRP 2' && !sms.nrp2) sms.nrp2 = now
-  if (next.statut === 'RDV Pris' && (before.statut !== 'RDV Pris' || before.rdvLe !== next.rdvLe)) sms.rdv = now
-  if (next.avisGoogle && !before.avisGoogle) sms.avis = now
-  const out: Prospect = { ...next, sms }
-  if (next.statut === 'Essai' && before.statut !== 'Essai' && !next.essaiLe) out.essaiLe = now
+  if (next.rdvLe && next.rdvLe !== before.rdvLe) sms.rdv = now
+  // La demande d'avis n'existe que pour un patient en essai ou facturé.
+  const avisGoogle = next.avisGoogle && isAppareillage(next.statut)
+  if (avisGoogle && !before.avisGoogle) sms.avis = now
+  const out: Prospect = { ...next, avisGoogle, sms }
+  if (next.statut === 'En essai' && before.statut !== 'En essai' && !next.essaiLe) out.essaiLe = now
   if (next.statut === 'Facturé' && before.statut !== 'Facturé') out.factureLe = now
   return out
 }
@@ -109,21 +111,33 @@ function useStoreValue() {
     [state.prospects, state.branch],
   )
 
-  const counts = useMemo(() => {
-    const kanban = visible.filter((p) => p.statut === null && KANBAN_ETATS.includes(p.etat))
-    const relance = visible.filter((p) => p.statut === null && p.etat === 'Relance phoning')
-    return {
-      aTraiter: kanban.filter((p) => p.etat === 'Nouveau lead').length,
-      kanban: kanban.length,
-      relanceToday: relance.filter((p) => rappelBucket(p.rappelLe) === 'today').length,
-      relanceRetard: relance.filter((p) => rappelBucket(p.rappelLe) === 'retard').length,
-    }
-  }, [visible])
+  /** Alertes d'un ensemble de prospects : nouveaux leads à traiter, relances dues (en retard ou aujourd'hui). */
+  const alertsOf = (list: Prospect[]) => {
+    const kanban = list.filter((p) => p.statut === null && KANBAN_ETATS.includes(p.etat))
+    const relance = list.filter((p) => p.statut === null && p.etat === 'Relance phoning')
+    const today = relance.filter((p) => rappelBucket(p.rappelLe) === 'today').length
+    const retard = relance.filter((p) => rappelBucket(p.rappelLe) === 'retard').length
+    return { aTraiter: kanban.filter((p) => p.etat === 'Nouveau lead').length, kanban: kanban.length, relanceToday: today, relanceRetard: retard, relanceDues: today + retard }
+  }
+  const counts = useMemo(() => alertsOf(visible), [visible]) // eslint-disable-line react-hooks/exhaustive-deps
+  const countsByCentre = useMemo(
+    () =>
+      Object.fromEntries((Object.keys(CENTRES) as CentreId[]).map((c) => [c, alertsOf(state.prospects.filter((p) => p.centre === c))])) as Record<
+        CentreId,
+        ReturnType<typeof alertsOf>
+      >,
+    [state.prospects], // eslint-disable-line react-hooks/exhaustive-deps
+  )
 
   const actions = useMemo(
     () => ({
       setBranch: (branch: BranchId) => dispatch({ type: 'branch', branch }),
       setView: (view: ViewId) => dispatch({ type: 'view', view }),
+      /** Ouvre une vue sur un centre précis (ou la vue groupe avec 'all'). */
+      go: (view: ViewId, branch: BranchId) => {
+        dispatch({ type: 'branch', branch })
+        dispatch({ type: 'view', view })
+      },
       select: (id: string | null) => dispatch({ type: 'select', id }),
       openRdv: (id: string | null) => dispatch({ type: 'openRdv', id }),
       openRelance: (id: string | null) => dispatch({ type: 'openRelance', id }),
@@ -139,7 +153,7 @@ function useStoreValue() {
 
   const byId = useCallback((id: string | null) => state.prospects.find((p) => p.id === id) ?? null, [state.prospects])
 
-  return { state, visible, counts, byId, ...actions }
+  return { state, visible, counts, countsByCentre, byId, ...actions }
 }
 
 type Store = ReturnType<typeof useStoreValue>

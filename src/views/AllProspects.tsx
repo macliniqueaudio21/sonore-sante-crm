@@ -1,16 +1,17 @@
 import { useMemo, useState } from 'react'
 import { ArrowDownUp, Download, Search, Users } from 'lucide-react'
 import { useStore } from '../store'
-import { CENTRES, ETATS, STATUTS } from '../data/constants'
-import type { EtatProspect, StatutSuivi } from '../data/types'
+import { CENTRES, ETATS, ETAT_DOT, STATUTS, STATUT_DOT, VIDE_DOT } from '../data/constants'
+import type { CentreId, EtatProspect, StatutSuivi } from '../data/types'
 import { formatAge, formatDate, fullName } from '../lib/utils'
-import { Button, Card, EmptyState, EtatBadge, Initials, PageHeader, StatutBadge, inputCls } from '../components/ui'
+import { Button, Card, DotSelect, EmptyState, EtatBadge, Initials, PageHeader, StatutBadge, inputCls } from '../components/ui'
 
 const PAGE = 25
 
 export function AllProspects({ onMenu }: { onMenu: () => void }) {
-  const { visible, select, toast } = useStore()
+  const { state, select, toast } = useStore()
   const [q, setQ] = useState('')
+  const [centre, setCentre] = useState<CentreId | ''>('')
   const [etat, setEtat] = useState<EtatProspect | ''>('')
   const [statut, setStatut] = useState<StatutSuivi | '' | 'none'>('')
   const [asc, setAsc] = useState(false)
@@ -18,17 +19,19 @@ export function AllProspects({ onMenu }: { onMenu: () => void }) {
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-    return visible
+    return state.prospects
       .filter((p) => {
+        if (centre && p.centre !== centre) return false
         if (etat && p.etat !== etat) return false
         if (statut === 'none' && p.statut !== null) return false
         if (statut && statut !== 'none' && p.statut !== statut) return false
         if (!needle) return true
-        const hay = `${p.prenom} ${p.nom} ${p.ville} ${p.telephone.replace(/\s/g, '')} ${p.email}`.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+        // L'email n'est jamais exposé, ni affiché ni cherchable.
+        const hay = `${p.prenom} ${p.nom} ${p.ville} ${p.telephone.replace(/\s/g, '')}`.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
         return hay.includes(needle.replace(/\s/g, '')) || hay.includes(needle)
       })
       .sort((a, b) => (asc ? 1 : -1) * (+new Date(a.createdAt) - +new Date(b.createdAt)))
-  }, [visible, q, etat, statut, asc])
+  }, [state.prospects, centre, q, etat, statut, asc])
 
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE))
   const cur = Math.min(page, pages - 1)
@@ -40,29 +43,45 @@ export function AllProspects({ onMenu }: { onMenu: () => void }) {
       <PageHeader
         onMenu={onMenu}
         title="Tous les Prospects"
-        subtitle={`${filtered.length.toLocaleString('fr-FR')} prospect${filtered.length > 1 ? 's' : ''} · base complète des leads Meta`}
+        subtitle={`${filtered.length.toLocaleString('fr-FR')} prospect${filtered.length > 1 ? 's' : ''} · base complète, tous centres`}
         actions={
-          <Button onClick={() => toast({ title: 'Export CSV', description: 'Disponible dans la version connectée.', tone: 'info' })}>
+          <Button onClick={() => toast({ title: 'Export CSV', description: 'Export sans adresses email, disponible dans la version connectée.', tone: 'info' })}>
             <Download size={16} /> Exporter
           </Button>
         }
       />
 
-      <Card className="overflow-hidden">
+      <Card className="overflow-visible">
         <div className="flex flex-col gap-2 border-b border-slate-100 p-4 md:flex-row">
           <div className="relative flex-1">
             <Search size={16} className="absolute top-1/2 left-3 -translate-y-1/2 text-slate-400" />
             <input className={`${inputCls} pl-9`} placeholder="Rechercher un nom, une ville, un téléphone…" value={q} onChange={(e) => { setQ(e.target.value); reset() }} />
           </div>
-          <select className={`${inputCls} md:w-48`} value={etat} onChange={(e) => { setEtat(e.target.value as EtatProspect | ''); reset() }}>
-            <option value="">Tous les états</option>
-            {ETATS.map((e) => <option key={e}>{e}</option>)}
-          </select>
-          <select className={`${inputCls} md:w-52`} value={statut} onChange={(e) => { setStatut(e.target.value as StatutSuivi | '' | 'none'); reset() }}>
-            <option value="">Tous les statuts patient</option>
-            <option value="none">(Vide)</option>
-            {STATUTS.map((s) => <option key={s}>{s}</option>)}
-          </select>
+          <DotSelect<CentreId | ''>
+            label="Centre"
+            className="md:w-48"
+            value={centre}
+            onChange={(v) => { setCentre(v); reset() }}
+            options={[{ value: '', label: 'Tous les centres' }, ...(Object.keys(CENTRES) as CentreId[]).map((c) => ({ value: c, label: CENTRES[c].court }))]}
+          />
+          <DotSelect<EtatProspect | ''>
+            label="État Prospect"
+            className="md:w-48"
+            value={etat}
+            onChange={(v) => { setEtat(v); reset() }}
+            options={[{ value: '', label: 'Tous les états' }, ...ETATS.map((e) => ({ value: e, label: e, dot: ETAT_DOT[e] }))]}
+          />
+          <DotSelect<StatutSuivi | '' | 'none'>
+            label="Statut Suivi Patient"
+            className="md:w-56"
+            value={statut}
+            onChange={(v) => { setStatut(v); reset() }}
+            options={[
+              { value: '', label: 'Tous les statuts patient' },
+              { value: 'none', label: '(Vide)', dot: VIDE_DOT },
+              ...STATUTS.map((s) => ({ value: s, label: s, dot: STATUT_DOT[s] })),
+            ]}
+          />
         </div>
 
         {rows.length === 0 ? (

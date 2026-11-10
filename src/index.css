@@ -22,8 +22,8 @@ body {
 .animate-pop-in { animation: pop-in .2s cubic-bezier(.2,.8,.2,1) }
 
 /* ===================================================================== */
-/* 3 styles sur une même structure épurée. Les composants lisent ces      */
-/* jetons ; les classes emerald-* de Tailwind gardent leurs vraies teintes.*/
+/* Thème « Forêt & Blanc ». Les composants lisent ces jetons ; les       */
+/* classes emerald-* de Tailwind gardent leurs vraies teintes.            */
 /* ===================================================================== */
 :root {
   --app-bg: #F8FAFC;
@@ -36,26 +36,7 @@ body {
   --accent-soft: #ECFDF5;
   --accent-soft-text: #047857;
 
-  /* Barre latérale — Émeraude Clair */
-  --nav-bg: #FFFFFF;
-  --nav-border: #E2E8F0;
-  --nav-title: #0F172A;
-  --nav-sub: #94A3B8;
-  --nav-text: #475569;
-  --nav-muted: #94A3B8;
-  --nav-hover-bg: #F1F5F9;
-  --nav-active-bg: #ECFDF5;
-  --nav-active-text: #047857;
-  --nav-active-bar: #059669;
-  --nav-input-bg: #FFFFFF;
-  --nav-input-border: #E2E8F0;
-  --nav-logo: #059669;
-  --nav-avatar-bg: #D1FAE5;
-  --nav-avatar-text: #065F46;
-}
-
-/* Forêt & Blanc : sidebar vert forêt profond qui encadre l'écran */
-:root[data-design="forest"] {
+  /* Barre latérale « Forêt & Blanc » : vert forêt profond qui encadre l'écran */
   --nav-bg: #062E22;
   --nav-border: #062E22;
   --nav-title: #FFFFFF;
@@ -66,21 +47,11 @@ body {
   --nav-active-bg: #10B981;
   --nav-active-text: #FFFFFF;
   --nav-active-bar: #A7F3D0;
-  --nav-input-bg: rgba(255, 255, 255, 0.06);
-  --nav-input-border: rgba(255, 255, 255, 0.12);
+  --nav-rule: rgba(255, 255, 255, 0.14);
   --nav-logo: #10B981;
   --nav-avatar-bg: rgba(16, 185, 129, 0.25);
   --nav-avatar-text: #A7F3D0;
 }
-
-/* Plateaux Pastel : colonnes Kanban et cartes KPI légèrement teintées */
-:root[data-design="pastel"] .tint-new { background: #F0FDF4; }
-:root[data-design="pastel"] .tint-nrp1 { background: #FFFBEB; }
-:root[data-design="pastel"] .tint-nrp2 { background: #FFF7ED; }
-:root[data-design="pastel"] .kpi-tint-1 { background: #F0FDF4; border-color: #DCFCE7; }
-:root[data-design="pastel"] .kpi-tint-2 { background: #F0F9FF; border-color: #E0F2FE; }
-:root[data-design="pastel"] .kpi-tint-3 { background: #FFFBEB; border-color: #FEF3C7; }
-:root[data-design="pastel"] .kpi-tint-4 { background: #ECFDF5; border-color: #D1FAE5; }
 
 body, .bg-app { background: var(--app-bg); }
 

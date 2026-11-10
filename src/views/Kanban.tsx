@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { Phone } from 'lucide-react'
 import { useStore } from '../store'
-import { ETATS_SORTIE, KANBAN_ETATS } from '../data/constants'
+import { CENTRES, ETATS_SORTIE, KANBAN_ETATS } from '../data/constants'
 import type { EtatProspect, Prospect } from '../data/types'
 import { ageHours, cn, formatAge, fullName, initials } from '../lib/utils'
 import { EmptyState, PageHeader } from '../components/ui'
 
-/** border : liseré gauche des cartes · tint : plateau teinté (style « Plateaux Pastel ») */
-const COLS: { etat: EtatProspect; hint: string; border: string; tint: string; dot: string }[] = [
-  { etat: 'Nouveau lead', hint: 'À appeler sous 2 h', border: 'border-l-emerald-500', tint: 'tint-new', dot: 'bg-emerald-500' },
-  { etat: 'NRP 1', hint: '1re tentative sans réponse', border: 'border-l-amber-400', tint: 'tint-nrp1', dot: 'bg-amber-400' },
-  { etat: 'NRP 2', hint: '2e tentative sans réponse', border: 'border-l-orange-500', tint: 'tint-nrp2', dot: 'bg-orange-500' },
+/** border : liseré gauche des cartes, aux couleurs des pastilles d'état */
+const COLS: { etat: EtatProspect; hint: string; border: string; dot: string }[] = [
+  { etat: 'Nouveau lead', hint: 'À appeler sous 2 h', border: 'border-l-emerald-500', dot: 'bg-emerald-500' },
+  { etat: 'NRP 1', hint: '1re tentative sans réponse', border: 'border-l-amber-400', dot: 'bg-amber-400' },
+  { etat: 'NRP 2', hint: '2e tentative sans réponse', border: 'border-l-orange-500', dot: 'bg-orange-500' },
 ]
 
 export function Kanban({ onMenu }: { onMenu: () => void }) {
@@ -32,7 +32,7 @@ export function Kanban({ onMenu }: { onMenu: () => void }) {
         title="Suivi des Prospects"
         subtitle={
           <>
-            {items.length} prospects à qualifier
+            {state.branch === 'all' ? 'Tous les centres' : CENTRES[state.branch].nom} · {items.length} prospects à qualifier
             {late > 0 && <span className="text-red-600"> · {late} hors délai de 2 h</span>}
           </>
         }
@@ -55,7 +55,7 @@ export function Kanban({ onMenu }: { onMenu: () => void }) {
                 const p = state.prospects.find((x) => x.id === e.dataTransfer.getData('text/plain'))
                 if (p) move(p, col.etat)
               }}
-              className={cn('min-h-[240px] rounded-2xl p-2 transition-colors', col.tint, dragOver === col.etat && 'bg-emerald-50/60')}
+              className={cn('min-h-[240px] rounded-2xl p-2 transition-colors', dragOver === col.etat && 'bg-emerald-50/60')}
             >
               <header className="mb-3 flex items-center justify-between px-1.5 pt-1">
                 <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { MoreHorizontal, PhoneCall } from 'lucide-react'
 import { useStore } from '../store'
-import { ETATS_SORTIE } from '../data/constants'
+import { CENTRES, ETATS_SORTIE } from '../data/constants'
 import type { EtatProspect, Prospect } from '../data/types'
 import { cn, formatRelativeDay, fullName, rappelBucket } from '../lib/utils'
 import { Button, Card, EmptyState, PageHeader, TextTabs } from '../components/ui'
@@ -9,7 +9,7 @@ import { Button, Card, EmptyState, PageHeader, TextTabs } from '../components/ui
 type Tab = 'retard' | 'today' | 'week'
 
 export function Relance({ onMenu }: { onMenu: () => void }) {
-  const { visible } = useStore()
+  const { visible, state } = useStore()
   const relances = visible.filter((p) => p.statut === null && p.etat === 'Relance phoning')
   const groups: Record<Tab, Prospect[]> = { retard: [], today: [], week: [] }
   for (const p of relances) {
@@ -24,7 +24,7 @@ export function Relance({ onMenu }: { onMenu: () => void }) {
 
   return (
     <>
-      <PageHeader onMenu={onMenu} title="Relance Phoning" subtitle={`${relances.length} prospects à rappeler`} />
+      <PageHeader onMenu={onMenu} title="Relance Phoning" subtitle={`${state.branch === 'all' ? 'Tous les centres' : CENTRES[state.branch].nom} · ${relances.length} prospects à rappeler`} />
       <TextTabs
         value={tab}
         onChange={setTab}

@@ -6,7 +6,6 @@ import type {
   PourQui,
   Prospect,
   Situation,
-  Source,
   StatutSuivi,
 } from './types'
 
@@ -88,8 +87,10 @@ interface Overrides {
   rdvInH?: number
   factureAgoH?: number
   essaiAgoH?: number
-  panier?: number
+  montant?: number
   avis?: boolean
+  /** Étape d'appel franchie avant le RDV (pour la traçabilité des SMS NRP). */
+  nrp?: 0 | 1 | 2
   notes?: { agoH: number; texte: string }[]
   pourQui?: PourQui
   situation?: Situation
@@ -105,11 +106,11 @@ function make(o: Overrides): Prospect {
   const createdAt = NOW - o.createdAgoH * HOUR
   const iso = (t: number | undefined) => (t === undefined ? undefined : new Date(Math.min(t, NOW - 60_000)).toISOString())
   const factureAt = o.factureAgoH !== undefined ? NOW - o.factureAgoH * HOUR : undefined
-  // Traçabilité Onoff : SMS envoyés automatiquement à chaque étape franchie.
+  // Suivi des SMS automatiques : envoyés automatiquement à chaque étape franchie.
   const closedAfterCalls = o.etat === 'Clôture' && o.statut == null
-  const passedNrp1 = o.etat === 'NRP 1' || o.etat === 'NRP 2' || closedAfterCalls || (o.etat === 'Relance phoning' && rand() < 0.5)
-  const passedNrp2 = o.etat === 'NRP 2' || closedAfterCalls
-  const avis = o.avis ?? (o.statut === 'Facturé' && rand() < 0.65)
+  const passedNrp1 = (o.nrp ?? 0) >= 1 || o.etat === 'NRP 1' || o.etat === 'NRP 2' || closedAfterCalls || (o.etat === 'Relance phoning' && rand() < 0.5)
+  const passedNrp2 = (o.nrp ?? 0) >= 2 || o.etat === 'NRP 2' || closedAfterCalls
+  const avis = o.statut === 'Facturé' && (o.avis ?? rand() < 0.65)
   const sms = {
     nrp1: passedNrp1 ? iso(createdAt + between(1, 5) * HOUR) : undefined,
     nrp2: passedNrp2 ? iso(createdAt + between(24, 30) * HOUR) : undefined,
@@ -122,10 +123,9 @@ function make(o: Overrides): Prospect {
     nom,
     ville: pick(VILLES[centre]),
     telephone: phone(),
-    email: `${slug(prenom)}.${slug(nom)}${rand() < 0.4 ? Math.floor(between(40, 75)) : ''}@${domain}`,
+    email: rand() < 0.85 ? `${slug(prenom)}.${slug(nom)}${rand() < 0.4 ? Math.floor(between(40, 75)) : ''}@${domain}` : undefined,
     age: Math.floor(between(58, 86)),
     centre,
-    source: (rand() < 0.68 ? 'Facebook' : 'Instagram') as Source,
     createdAt: new Date(createdAt).toISOString(),
     etat: o.etat,
     statut: o.statut ?? null,
@@ -136,7 +136,7 @@ function make(o: Overrides): Prospect {
     rdvLe: o.rdvInH !== undefined ? new Date(NOW + o.rdvInH * HOUR).toISOString() : undefined,
     factureLe: iso(factureAt),
     essaiLe: o.essaiAgoH !== undefined ? new Date(NOW - o.essaiAgoH * HOUR).toISOString() : undefined,
-    panier: o.panier ?? 2500,
+    montant: o.montant,
     avisGoogle: avis,
     consentementLe: new Date(createdAt).toISOString(),
     sms,
@@ -201,15 +201,15 @@ const actifs: Prospect[] = [
   make({ centre: 'phalempin', createdAgoH: 5 * 24, etat: 'Relance phoning', rappelInH: atDay(5, 10, 30), notes: [{ agoH: 4 * 24, texte: 'Rappeler après son opération de la cataracte.' }] }),
 
   // — Parcours : RDV pris à venir (5) —
-  make({ centre: 'cysoing', createdAgoH: 3 * 24, etat: 'Nouveau lead', statut: 'RDV Pris', rdvInH: atDay(1, 10), notes: [{ agoH: 70, texte: 'RDV bilan auditif fixé. Venir avec ordonnance et carte vitale.' }] }),
-  make({ centre: 'templeuve', createdAgoH: 4 * 24, etat: 'NRP 1', statut: 'RDV Pris', rdvInH: atDay(1, 14, 30) }),
-  make({ centre: 'phalempin', createdAgoH: 2 * 24, etat: 'Nouveau lead', statut: 'RDV Pris', rdvInH: atDay(2, 9, 30), notes: [{ agoH: 44, texte: 'Viendra accompagnée de son fils.' }] }),
-  make({ centre: 'tourlaville', createdAgoH: 6 * 24, etat: 'Relance phoning', statut: 'RDV Pris', rdvInH: atDay(3, 16) }),
-  make({ centre: 'cysoing', createdAgoH: 5 * 24, etat: 'NRP 2', statut: 'RDV Pris', rdvInH: atDay(4, 11) }),
+  make({ centre: 'cysoing', createdAgoH: 3 * 24, etat: 'RDV fixé', statut: 'En attente', nrp: 0, rdvInH: atDay(1, 10), notes: [{ agoH: 70, texte: 'RDV bilan auditif fixé. Venir avec ordonnance et carte vitale.' }] }),
+  make({ centre: 'templeuve', createdAgoH: 4 * 24, etat: 'RDV fixé', statut: 'En attente', nrp: 1, rdvInH: atDay(1, 14, 30) }),
+  make({ centre: 'phalempin', createdAgoH: 2 * 24, etat: 'RDV fixé', statut: 'En attente', nrp: 0, rdvInH: atDay(2, 9, 30), notes: [{ agoH: 44, texte: 'Viendra accompagnée de son fils.' }] }),
+  make({ centre: 'tourlaville', createdAgoH: 6 * 24, etat: 'RDV fixé', statut: 'En attente', nrp: 1, rdvInH: atDay(3, 16) }),
+  make({ centre: 'cysoing', createdAgoH: 5 * 24, etat: 'RDV fixé', statut: 'En attente', nrp: 2, rdvInH: atDay(4, 11) }),
 ]
 
 /* ------------------------------------------------------------------ */
-/* 2. Historique généré sur 12 mois (campagnes Meta en croissance)     */
+/* 2. Historique généré sur 12 mois (acquisition en croissance)        */
 /* ------------------------------------------------------------------ */
 const historique: Prospect[] = []
 const NOTES_FACTURE = ['Appareillage classe 1 (100% Santé), très satisfaite.', 'Appareillage classe 2 rechargeable. Bon ressenti dès la 1re semaine.', 'Choix du modèle intra. Contrôle à 1 mois planifié.', 'Patient ravi, recommande le centre à son épouse.']
@@ -240,7 +240,8 @@ for (let dayAgo = 365; dayAgo >= 3; dayAgo--) {
     }
 
     // A obtenu un RDV : on avance dans le parcours selon le temps écoulé.
-    const etatAvant = pick<EtatProspect>(['Nouveau lead', 'Nouveau lead', 'NRP 1', 'NRP 2', 'Relance phoning'])
+    const nrp = pick<0 | 1 | 2>([0, 0, 0, 1, 1, 2])
+    const etatAvant: EtatProspect = 'RDV fixé'
     const rdvAfterD = between(2, 9)
     const rdvAgoD = daysSince - rdvAfterD
     if (rdvAgoD < 0) {
@@ -250,25 +251,29 @@ for (let dayAgo = 365; dayAgo >= 3; dayAgo--) {
     }
     const rdvInH = -rdvAgoD * 24
     const outcome = rand()
-    if (outcome < 0.12) {
-      historique.push(make({ createdAgoH, etat: 'Clôture', statut: 'RDV Réalisé', rdvInH, notes: [{ agoH: rdvAgoD * 24 - 2, texte: 'Bilan réalisé : perte légère, pas d’appareillage nécessaire pour le moment.' }] }))
+    if (outcome < 0.06) {
+      historique.push(make({ createdAgoH, etat: etatAvant, nrp, statut: 'Pas venu', rdvInH, notes: [{ agoH: rdvAgoD * 24 - 3, texte: 'Ne s’est pas présenté au RDV. Message laissé pour reprogrammer.' }] }))
+      continue
+    }
+    if (outcome < 0.14) {
+      historique.push(make({ createdAgoH, etat: etatAvant, nrp, statut: 'Non appareillable', rdvInH, notes: [{ agoH: rdvAgoD * 24 - 2, texte: 'Bilan réalisé : perte légère, pas d’appareillage nécessaire pour le moment.' }] }))
       continue
     }
     if (rdvAgoD < 4) {
-      historique.push(make({ createdAgoH, etat: etatAvant, statut: 'RDV Réalisé', rdvInH, notes: [{ agoH: rdvAgoD * 24 - 1, texte: 'Bilan réalisé. Devis remis, en attente de validation mutuelle.' }] }))
+      historique.push(make({ createdAgoH, etat: etatAvant, nrp, statut: 'En attente', rdvInH, notes: [{ agoH: rdvAgoD * 24 - 1, texte: 'Bilan réalisé. Devis remis, en attente de validation mutuelle.' }] }))
       continue
     }
     const essaiDuree = between(21, 30)
     const essaiAgoH = (rdvAgoD - 1) * 24
     if (rdvAgoD < essaiDuree) {
-      historique.push(make({ createdAgoH, etat: etatAvant, statut: 'Essai', rdvInH, essaiAgoH, notes: [{ agoH: rdvAgoD * 24 - 24, texte: `Mise en essai ${pick(['classe 1', 'classe 2', 'rechargeable', 'RIC'])}. Contrôle prévu à J+15.` }] }))
+      historique.push(make({ createdAgoH, etat: etatAvant, nrp, statut: 'En essai', rdvInH, essaiAgoH, notes: [{ agoH: rdvAgoD * 24 - 24, texte: `Mise en essai ${pick(['classe 1', 'classe 2', 'rechargeable', 'RIC'])}. Contrôle prévu à J+15.` }] }))
       continue
     }
     if (outcome < 0.82) {
       const factureAgoH = (rdvAgoD - essaiDuree) * 24
-      historique.push(make({ createdAgoH, etat: etatAvant, statut: 'Facturé', rdvInH, factureAgoH, essaiAgoH, panier: pick([2500, 2500, 2500, 2500, 1980, 3190, 3600]), notes: [{ agoH: factureAgoH, texte: pick(NOTES_FACTURE) }] }))
+      historique.push(make({ createdAgoH, etat: etatAvant, nrp, statut: 'Facturé', rdvInH, factureAgoH, essaiAgoH, montant: pick([2500, 2500, 2500, 2500, 1980, 3190, 3600]), notes: [{ agoH: factureAgoH, texte: pick(NOTES_FACTURE) }] }))
     } else {
-      historique.push(make({ createdAgoH, etat: 'Clôture', statut: 'Essai', rdvInH, essaiAgoH, notes: [{ agoH: (rdvAgoD - essaiDuree) * 24, texte: pick(NOTES_PERDU) }] }))
+      historique.push(make({ createdAgoH, etat: etatAvant, nrp, statut: "Échec d'appareillage", rdvInH, essaiAgoH, notes: [{ agoH: (rdvAgoD - essaiDuree) * 24, texte: pick(NOTES_PERDU) }] }))
     }
   }
 }

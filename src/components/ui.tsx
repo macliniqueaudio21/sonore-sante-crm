@@ -1,7 +1,7 @@
-import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from 'react'
-import { X } from 'lucide-react'
+import { useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import { Check, ChevronDown, X } from 'lucide-react'
 import { cn } from '../lib/utils'
-import { CENTRES, ETAT_DOT, STATUTS, STATUT_DOT } from '../data/constants'
+import { CENTRES, ETATS, ETAT_DOT, STATUTS, STATUT_DOT, VIDE_DOT } from '../data/constants'
 import type { CentreId, EtatProspect, StatutSuivi } from '../data/types'
 
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
@@ -115,7 +115,7 @@ export function Segmented<T extends string>({
   )
 }
 
-/** Onglets texte minimalistes sur une ligne : « Tous (127) | RDV Pris (5) | … ». */
+/** Onglets texte minimalistes sur une ligne : « Tous (127) | En attente (5) | … ». */
 export function TextTabs<T extends string>({
   value,
   onChange,
@@ -190,10 +190,17 @@ export function Modal({
   )
 }
 
-export function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
+/** Champ libellé. `group` : pour un ensemble de boutons (pas un <label> qui ne vise qu'un seul contrôle). */
+export function Field({ label, children, group }: { label: string; children: ReactNode; group?: boolean }) {
+  const caption = <span className="mb-1.5 block text-xs font-medium text-slate-500">{label}</span>
+  return group ? (
+    <div role="group" aria-label={label} className="block">
+      {caption}
+      {children}
+    </div>
+  ) : (
     <label className="block">
-      <span className="mb-1.5 block text-xs font-medium text-slate-500">{label}</span>
+      {caption}
       {children}
     </label>
   )
@@ -233,58 +240,167 @@ export function Switch({ checked, onChange, label }: { checked: boolean; onChang
   )
 }
 
-/** Menu déroulant « Statut Suivi Patient » : neutre, avec le point de couleur du statut. */
-export function StatutSelect({
+export interface DotOption<T extends string> {
+  value: T
+  label: string
+  /** Pastille de couleur (facultative). */
+  dot?: string
+}
+
+/**
+ * Menu déroulant sobre avec pastille de couleur (8 px) sur le bouton et dans la liste.
+ * Se ferme au clic extérieur et avec Échap (sans fermer le panneau qui le contient).
+ */
+export function DotSelect<T extends string>({
   value,
+  options,
   onChange,
+  label,
+  size = 'md',
   className,
 }: {
-  value: StatutSuivi | null
-  onChange: (v: StatutSuivi | null) => void
+  value: T
+  options: DotOption<T>[]
+  onChange: (v: T) => void
+  label: string
+  size?: 'sm' | 'md'
   className?: string
 }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const current = options.find((o) => o.value === value) ?? options[0]
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false)
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onDown)
+    window.addEventListener('keydown', onKey, true)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      window.removeEventListener('keydown', onKey, true)
+    }
+  }, [open])
+
   return (
-    <div className={cn('relative inline-flex', className)} onClick={(e) => e.stopPropagation()}>
-      <span className="pointer-events-none absolute top-1/2 left-2.5 h-1.5 w-1.5 -translate-y-1/2 rounded-full" style={{ background: value ? STATUT_DOT[value] : '#D4D4D8' }} />
-      <select
-        value={value ?? ''}
-        onChange={(e) => onChange((e.target.value || null) as StatutSuivi | null)}
-        aria-label="Statut Suivi Patient"
-        className="w-full cursor-pointer rounded-md border border-slate-200 bg-white py-1 pr-6 pl-6 text-[13px] text-slate-800 hover:border-slate-300 focus:border-slate-400 focus:outline-none"
+    <div ref={ref} className={cn('relative', className)} onClick={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        aria-label={label}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className={cn(
+          'flex w-full cursor-pointer items-center gap-2 rounded-lg border bg-white text-left text-slate-800 transition-colors',
+          open ? 'border-slate-400' : 'border-slate-200 hover:border-slate-300',
+          size === 'sm' ? 'h-8 px-2.5 text-[13px]' : 'h-[38px] px-3 text-sm',
+        )}
       >
-        <option value="">(Vide)</option>
-        {STATUTS.map((s) => (
-          <option key={s} value={s}>
-            {s}
-          </option>
-        ))}
-      </select>
+        {current.dot && <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: current.dot }} />}
+        <span className="min-w-0 flex-1 truncate">{current.label}</span>
+        <ChevronDown size={14} className={cn('shrink-0 text-slate-400 transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <ul role="listbox" className="animate-pop-in absolute top-full right-0 left-0 z-30 mt-1 max-h-72 min-w-[180px] overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
+          {options.map((o) => (
+            <li key={o.value}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={o.value === value}
+                onClick={() => {
+                  setOpen(false)
+                  if (o.value !== value) onChange(o.value)
+                }}
+                className={cn(
+                  'flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] hover:bg-slate-50',
+                  o.value === value ? 'font-medium text-slate-900' : 'text-slate-600',
+                )}
+              >
+                {o.dot && <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: o.dot }} />}
+                <span className="flex-1 truncate">{o.label}</span>
+                {o.value === value && <Check size={13} className="text-emerald-600" />}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
 
-/** Champ « Panier Moyen (€) » : validé à la sortie du champ ou avec Entrée. */
-export function PanierInput({ value, onCommit, className }: { value: number; onCommit: (v: number) => void; className?: string }) {
-  const [draft, setDraft] = useState(String(value))
-  useEffect(() => setDraft(String(value)), [value])
+export const ETAT_OPTIONS: DotOption<EtatProspect>[] = ETATS.map((e) => ({ value: e, label: e, dot: ETAT_DOT[e] }))
+export const STATUT_OPTIONS: DotOption<StatutSuivi | ''>[] = [
+  { value: '', label: '(Vide)', dot: VIDE_DOT },
+  ...STATUTS.map((s) => ({ value: s, label: s, dot: STATUT_DOT[s] })),
+]
+
+/** « Statut Suivi Patient » : menu à pastilles, valeur vide = (Vide). */
+export function StatutSelect({
+  value,
+  onChange,
+  size = 'sm',
+  className,
+}: {
+  value: StatutSuivi | null
+  onChange: (v: StatutSuivi | null) => void
+  size?: 'sm' | 'md'
+  className?: string
+}) {
+  return (
+    <DotSelect
+      label="Statut Suivi Patient"
+      size={size}
+      className={className}
+      value={value ?? ''}
+      options={STATUT_OPTIONS}
+      onChange={(v) => onChange(v === '' ? null : v)}
+    />
+  )
+}
+
+/** Champ « Montant facturé (€) » : jamais pré-rempli, validé à la sortie du champ ou avec Entrée. */
+export function MontantInput({
+  value,
+  onCommit,
+  className,
+  bordered,
+}: {
+  value?: number
+  onCommit: (v: number | undefined) => void
+  className?: string
+  bordered?: boolean
+}) {
+  const [draft, setDraft] = useState(value === undefined ? '' : String(value))
+  useEffect(() => setDraft(value === undefined ? '' : String(value)), [value])
   const commit = () => {
-    const n = Math.max(0, Math.round(Number(draft.replace(/\s/g, '').replace(',', '.'))))
-    if (Number.isFinite(n) && n !== value) onCommit(n)
-    else setDraft(String(value))
+    const raw = draft.replace(/\s/g, '').replace(',', '.')
+    const n = raw === '' ? undefined : Math.max(0, Math.round(Number(raw)))
+    if (n !== undefined && !Number.isFinite(n)) return setDraft(value === undefined ? '' : String(value))
+    if (n !== value) onCommit(n)
   }
   return (
     <div className={cn('relative', className)} onClick={(e) => e.stopPropagation()}>
       <input
         type="number"
         min={0}
-        step={50}
+        step={10}
         inputMode="numeric"
-        aria-label="Panier Moyen (€)"
+        aria-label="Montant facturé (€)"
+        placeholder="—"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-        className="w-full rounded-md border border-transparent bg-transparent py-1 pr-6 pl-2 text-right text-[13px] text-slate-900 tabular-nums hover:border-slate-200 focus:border-slate-400 focus:bg-white focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+        className={cn(
+          'w-full rounded-md border py-1 pr-6 pl-2 text-right text-[13px] text-slate-900 tabular-nums placeholder:text-slate-300 focus:border-slate-400 focus:bg-white focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none',
+          bordered ? 'h-[38px] rounded-lg border-slate-200 bg-white text-sm' : 'border-transparent bg-transparent hover:border-slate-200',
+        )}
       />
       <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-xs text-slate-400">€</span>
     </div>

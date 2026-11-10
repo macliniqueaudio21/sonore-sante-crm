@@ -64,3 +64,18 @@ export function rappelBucket(iso: string | undefined): 'retard' | 'today' | 'wee
   if (t < today + 8 * DAY) return 'week'
   return 'later'
 }
+
+/** « Jeu. 12 nov. à 10h30 » */
+export function formatRdvLong(iso: string) {
+  const d = new Date(iso)
+  const wd = d.toLocaleDateString('fr-FR', { weekday: 'short' })
+  const day = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+  const h = `${d.getHours()}h${String(d.getMinutes()).padStart(2, '0')}`
+  return `${wd.charAt(0).toUpperCase()}${wd.slice(1)} ${day} à ${h}`
+}
+
+/** Valeur pour <input type="date"> en heure locale. */
+export function toDateInput(d: Date) {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}

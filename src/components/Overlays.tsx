@@ -1,112 +1,132 @@
 import { useEffect, useState } from 'react'
 import {
+  Activity,
   CalendarCheck,
   CalendarClock,
   CheckCircle2,
-  ClipboardList,
   Info,
-  Mail,
+  ListChecks,
+  MailCheck,
+  MailX,
   MessageSquarePlus,
+  MessageSquareText,
   Phone,
+  PhoneMissed,
   Send,
   StickyNote,
   TriangleAlert,
   User,
   X,
-  Zap,
 } from 'lucide-react'
 import { useStore } from '../store'
-import { CENTRES, ETATS } from '../data/constants'
+import { CENTRES, KANBAN_ETATS, isAppareillage } from '../data/constants'
 import type { EtatProspect, StatutSuivi } from '../data/types'
-import { DAY, cn, formatAge, formatDate, formatEur, formatRelativeDay, fullName, initials, startOfDay, toLocalInput } from '../lib/utils'
-import { Button, EtatBadge, Field, Modal, PanierInput, StatutBadge, StatutSelect, Switch, inputCls } from './ui'
-import { SourceDot } from './MetaTags'
+import { DAY, cn, formatAge, formatDate, formatEur, formatRdvLong, formatRelativeDay, fullName, initials, startOfDay, toDateInput, toLocalInput } from '../lib/utils'
+import { Button, DotSelect, ETAT_OPTIONS, EtatBadge, Field, Modal, MontantInput, StatutBadge, StatutSelect, Switch, inputCls } from './ui'
 
 /* -------------------------------- RDV -------------------------------- */
-const SLOTS = ['09:00', '09:45', '10:30', '11:15', '14:00', '14:45', '15:30', '16:15', '17:00']
+// Le CRM n'est pas relié à l'agenda du centre : on choisit librement le jour et l'heure.
+const HOURS = Array.from({ length: 12 }, (_, i) => String(i + 8).padStart(2, '0')) // 08 → 19
+const MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0')) // 00 → 55
+
+/** Les 5 prochains jours ouvrés (lundi → vendredi), à partir de demain. */
+function nextBusinessDays(n = 5) {
+  const out: Date[] = []
+  let d = startOfDay(Date.now() + DAY)
+  while (out.length < n) {
+    if (d.getDay() !== 0 && d.getDay() !== 6) out.push(d)
+    d = startOfDay(d.getTime() + DAY + 3_600_000) // +1 h évite les pièges du changement d'heure
+  }
+  return out
+}
 
 export function RdvModal() {
-  const { state, byId, openRdv, setStatut, toast } = useStore()
+  const { state, byId, openRdv, patch, toast } = useStore()
   const p = byId(state.rdvForId)
-  const days = Array.from({ length: 6 }, (_, i) => {
-    const d = startOfDay(Date.now() + (i + 1) * DAY)
-    return d
-  }).filter((d) => d.getDay() !== 0)
-  const [day, setDay] = useState(0)
-  const [slot, setSlot] = useState('10:30')
+  const days = nextBusinessDays()
+  const [day, setDay] = useState<string>(toDateInput(days[0]))
+  const [other, setOther] = useState(false)
+  const [hour, setHour] = useState('10')
+  const [minute, setMinute] = useState('00')
   const [note, setNote] = useState('')
 
   useEffect(() => {
-    if (p) {
-      setDay(0)
-      setSlot('10:30')
-      setNote('')
-    }
+    if (!p) return
+    const existing = p.rdvLe && new Date(p.rdvLe) > new Date() ? new Date(p.rdvLe) : null
+    const d = existing ? toDateInput(existing) : toDateInput(days[0])
+    setDay(d)
+    setOther(!days.some((x) => toDateInput(x) === d))
+    setHour(existing ? String(existing.getHours()).padStart(2, '0') : '10')
+    setMinute(existing ? String(existing.getMinutes() - (existing.getMinutes() % 5)).padStart(2, '0') : '00')
+    setNote('')
   }, [p?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!p) return null
   const close = () => openRdv(null)
   const confirm = () => {
-    const d = new Date(days[day])
-    const [h, m] = slot.split(':').map(Number)
-    d.setHours(h, m)
-    setStatut(p.id, 'RDV Pris', { rdvLe: d.toISOString() }, `RDV fixé le ${formatRelativeDay(d.toISOString())} au ${CENTRES[p.centre].nom}.${note ? ' ' + note : ''}`)
-    toast({ title: 'RDV confirmé · SMS Confirmation RDV envoyé', description: `${fullName(p)} · ${formatRelativeDay(d.toISOString())}`, tone: 'success' })
+    const d = new Date(`${day}T${hour}:${minute}`)
+    const iso = d.toISOString()
+    // Un RDV (re)fixé remet le patient « En attente », sauf s'il est déjà plus loin dans son parcours.
+    const statut: StatutSuivi = p.statut === null || p.statut === 'Pas venu' || p.statut === 'En attente' ? 'En attente' : p.statut
+    patch(p.id, { etat: 'RDV fixé', statut, rdvLe: iso }, `RDV fixé : ${formatRdvLong(iso)} au ${CENTRES[p.centre].nom}.${note ? ' ' + note : ''}`)
+    toast({ title: 'RDV confirmé · SMS de confirmation envoyé', description: `${fullName(p)} · ${formatRdvLong(iso)}`, tone: 'success' })
     close()
   }
+  const chip = (active: boolean) =>
+    cn(
+      'cursor-pointer rounded-lg border px-1 py-2 text-center transition-colors',
+      active ? 'border-emerald-500 bg-emerald-50 text-emerald-800' : 'border-slate-200 text-slate-600 hover:border-slate-300',
+    )
 
   return (
     <Modal
       open
       onClose={close}
-      title="Fixer un rendez-vous"
+      title={p.rdvLe ? 'Modifier le rendez-vous' : 'Fixer un rendez-vous'}
       subtitle={`${fullName(p)} · ${CENTRES[p.centre].nom}`}
       footer={
         <>
           <Button variant="ghost" onClick={close}>Annuler</Button>
-          <Button variant="accent" onClick={confirm}>
+          <Button variant="accent" onClick={confirm} disabled={!day}>
             <CalendarCheck size={16} /> Confirmer le RDV
           </Button>
         </>
       }
     >
-      <div className="space-y-4">
-        <Field label="Jour">
-          <div className="grid grid-cols-5 gap-1.5">
-            {days.slice(0, 5).map((d, i) => (
-              <button
-                key={i}
-                onClick={() => setDay(i)}
-                className={cn(
-                  'cursor-pointer rounded-xl border px-1 py-2 text-center transition-colors',
-                  day === i ? 'border-slate-900 bg-slate-50 text-slate-900' : 'border-slate-200 text-slate-600 hover:border-slate-300',
-                )}
-              >
-                <div className="text-[10px] font-medium uppercase">{d.toLocaleDateString('fr-FR', { weekday: 'short' })}</div>
-                <div className="text-base font-semibold">{d.getDate()}</div>
-                <div className="text-[10px]">{d.toLocaleDateString('fr-FR', { month: 'short' })}</div>
-              </button>
-            ))}
-          </div>
-        </Field>
-        <Field label="Créneau (bilan auditif · 45 min)">
-          <div className="grid grid-cols-3 gap-1.5">
-            {SLOTS.map((s, i) => {
-              const busy = (i + day) % 4 === 1
+      <div className="space-y-5">
+        <Field label="Jour" group>
+          <div className="grid grid-cols-6 gap-1.5">
+            {days.map((d) => {
+              const v = toDateInput(d)
               return (
-                <button
-                  key={s}
-                  disabled={busy}
-                  onClick={() => setSlot(s)}
-                  className={cn(
-                    'cursor-pointer rounded-lg border py-1.5 text-sm font-medium tabular-nums transition-colors disabled:cursor-not-allowed disabled:border-dashed disabled:text-slate-300 disabled:line-through',
-                    slot === s && !busy ? 'border-slate-900 bg-slate-50 text-slate-900' : 'border-slate-200 text-slate-700 hover:border-slate-300',
-                  )}
-                >
-                  {s}
+                <button key={v} onClick={() => { setDay(v); setOther(false) }} className={chip(!other && day === v)}>
+                  <div className="text-[10px] font-medium uppercase">{d.toLocaleDateString('fr-FR', { weekday: 'short' })}</div>
+                  <div className="text-base leading-tight font-semibold">{d.getDate()}</div>
+                  <div className="text-[10px]">{d.toLocaleDateString('fr-FR', { month: 'short' })}</div>
                 </button>
               )
             })}
+            <button onClick={() => setOther(true)} className={cn(chip(other), 'flex flex-col items-center justify-center gap-0.5')}>
+              <CalendarClock size={16} strokeWidth={1.75} />
+              <span className="text-[10px] leading-tight font-medium">Autre date</span>
+            </button>
+          </div>
+          {other && (
+            <input
+              type="date"
+              aria-label="Autre date"
+              className={cn(inputCls, 'mt-2')}
+              min={toDateInput(new Date())}
+              value={day}
+              onChange={(e) => setDay(e.target.value)}
+            />
+          )}
+        </Field>
+        <Field label="Horaire" group>
+          <div className="flex items-center gap-2">
+            <DotSelect label="Heure" className="w-28" value={hour} onChange={setHour} options={HOURS.map((h) => ({ value: h, label: `${h} h` }))} />
+            <span className="text-slate-400">:</span>
+            <DotSelect label="Minutes" className="w-28" value={minute} onChange={setMinute} options={MINUTES.map((m) => ({ value: m, label: m }))} />
           </div>
         </Field>
         <Field label="Note (optionnel)">
@@ -114,7 +134,7 @@ export function RdvModal() {
         </Field>
         <p className="flex items-center gap-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
           <Send size={14} className="shrink-0 text-slate-400" />
-          Un SMS de confirmation et un rappel J-1 seront envoyés au {p.telephone}.
+          Un SMS de confirmation et un rappel la veille seront envoyés au {p.telephone}.
         </p>
       </div>
     </Modal>
@@ -204,42 +224,39 @@ export function ProspectDrawer() {
     toast({ title: 'État mis à jour', description: `${fullName(p)} · ${etat}${sms ? ` · SMS ${etat} envoyé` : ''}` })
   }
   const changeStatut = (statut: StatutSuivi | null) => {
-    if (statut === 'RDV Pris' && !p.rdvLe) return openRdv(p.id)
     setStatut(p.id, statut, {}, `Statut suivi → ${statut ?? '(Vide)'}`)
-    toast({ title: 'Statut patient mis à jour', description: `${fullName(p)} · ${statut ?? '(Vide)'}`, tone: statut === 'Facturé' ? 'success' : 'info' })
+    const missing = statut === 'Facturé' && p.montant === undefined
+    toast({
+      title: 'Statut patient mis à jour',
+      description: missing ? 'Pensez à saisir le montant facturé.' : `${fullName(p)} · ${statut ?? '(Vide)'}`,
+      tone: statut === 'Facturé' ? 'success' : 'info',
+    })
   }
-  const setDate = (field: 'rappelLe' | 'rdvLe', value: string) => {
-    const iso = value ? new Date(value).toISOString() : undefined
-    if (field === 'rdvLe') {
-      const extra = iso && !p.statut ? { statut: 'RDV Pris' as const } : {}
-      patch(p.id, { rdvLe: iso, ...extra }, iso ? `Date de RDV → ${formatRelativeDay(iso)}` : 'Date de RDV effacée')
-    } else {
-      patch(p.id, { rappelLe: iso }, iso ? `Date de rappel → ${formatRelativeDay(iso)}` : 'Date de rappel effacée')
-    }
-  }
+  // « Pas de réponse » en 1 clic : Nouveau lead → NRP 1 → NRP 2.
+  const nrpNext: EtatProspect | null = p.etat === 'Nouveau lead' ? 'NRP 1' : p.etat === 'NRP 1' ? 'NRP 2' : null
   const saveNote = () => {
     if (!draft.trim()) return
     addNote(p.id, draft.trim())
     setDraft('')
   }
+  const appareillage = isAppareillage(p.statut)
+  const rdvAVenir = p.rdvLe && new Date(p.rdvLe) > new Date() ? p.rdvLe : null
+  const rappel = p.etat === 'Relance phoning' && p.rappelLe ? p.rappelLe : null
 
   return (
     <div className="fixed inset-0 z-50">
       <div className="animate-fade-in absolute inset-0 bg-slate-900/20" onClick={() => select(null)} />
-      <aside className="animate-slide-in-right absolute inset-y-0 right-0 flex w-full max-w-[480px] flex-col bg-app shadow-xl">
-        <div className="flex items-start gap-4 border-b border-[var(--card-border)] bg-white p-6">
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-slate-100 text-sm font-semibold text-slate-600">
+      <aside className="animate-slide-in-right absolute inset-y-0 right-0 flex w-full max-w-[480px] flex-col bg-slate-50 shadow-xl">
+        <div className="flex items-start gap-4 border-b border-slate-200/80 bg-white p-6">
+          <div className={cn('grid h-12 w-12 shrink-0 place-items-center rounded-full text-sm font-semibold', appareillage ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600')}>
             {initials(p)}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h2 className="truncate text-lg font-semibold text-slate-900">{fullName(p)}</h2>
-              <SourceDot source={p.source} />
-            </div>
+            <h2 className="truncate text-lg font-semibold text-slate-900">{fullName(p)}</h2>
             <p className="text-sm text-slate-500">
               {p.age} ans · {CENTRES[p.centre].nom} · <span className="text-slate-400">{p.id}</span>
             </p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
               <EtatBadge etat={p.etat} />
               {p.statut && <StatutBadge statut={p.statut} />}
               <span className="text-[11px] text-slate-400">reçu il y a {formatAge(p.createdAt)}</span>
@@ -250,78 +267,90 @@ export function ProspectDrawer() {
           </button>
         </div>
 
-        <div className="scrollbar-thin flex-1 space-y-4 overflow-y-auto p-5">
-          {/* Coordonnées */}
+        <div className="scrollbar-thin flex-1 space-y-3 overflow-y-auto p-4">
           <Section title="Coordonnées" icon={<User size={14} />}>
             <div className="grid grid-cols-2 gap-3">
               <EditField label="Prénom" value={p.prenom} onCommit={(v) => patch(p.id, { prenom: v })} />
               <EditField label="Nom" value={p.nom} onCommit={(v) => patch(p.id, { nom: v })} />
               <EditField label="Téléphone" value={p.telephone} type="tel" onCommit={(v) => patch(p.id, { telephone: v })}
-                action={<a href={`tel:${p.telephone.replace(/\s/g, '')}`} className="text-slate-400 hover:text-[var(--accent-text)]" aria-label="Appeler"><Phone size={14} /></a>} />
+                action={<a href={`tel:${p.telephone.replace(/\s/g, '')}`} className="text-slate-400 hover:text-emerald-600" aria-label="Appeler"><Phone size={14} /></a>} />
               <EditField label="Ville" value={p.ville} onCommit={(v) => patch(p.id, { ville: v })} />
-              <div className="col-span-2">
-                <EditField label="Email" value={p.email} type="email" onCommit={(v) => patch(p.id, { email: v })}
-                  action={<a href={`mailto:${p.email}`} className="text-slate-400 hover:text-slate-700" aria-label="Écrire"><Mail size={14} /></a>} />
-              </div>
             </div>
+            {/* L'adresse email reste dans nos données (automatisations) mais n'est jamais affichée. */}
+            <p className={cn('mt-3 flex items-center gap-2 text-[13px]', p.email ? 'text-slate-600' : 'text-slate-400')}>
+              {p.email ? <MailCheck size={15} className="shrink-0 text-emerald-600" /> : <MailX size={15} className="shrink-0 text-slate-300" />}
+              {p.email ? 'Email renseigné · Rappels automatiques activés' : 'Aucun email renseigné'}
+            </p>
           </Section>
 
-          {/* Réponses Meta */}
-          <Section title="Réponses Meta Ads" icon={<SourceDot source={p.source} />}>
+          <Section title="Réponses questionnaire" icon={<ListChecks size={14} />}>
             <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-slate-100 ring-1 ring-slate-100">
-              <MetaCell label="Pour qui ?" value={p.pourQui} />
-              <MetaCell label="Situation gênante" value={p.situation} />
-              <MetaCell label="100% Santé" value={p.centPourcent}  />
-              <MetaCell label="Date consentement" value={formatDate(p.consentementLe, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} />
+              <Answer label="Pour qui ?" value={p.pourQui} />
+              <Answer label="Situation gênante" value={p.situation} />
+              <Answer label="100% Santé" value={p.centPourcent} />
+              <Answer label="Date consentement" value={formatDate(p.consentementLe, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} />
             </dl>
           </Section>
 
-          {/* Suivi */}
-          <Section title="Suivi" icon={<ClipboardList size={14} />}>
+          <Section title="Suivi" icon={<Activity size={14} />}>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="État Prospect">
-                <select className={inputCls} value={p.etat} onChange={(e) => changeEtat(e.target.value as EtatProspect)}>
-                  {ETATS.map((e) => <option key={e}>{e}</option>)}
-                </select>
+              <Field label="État Prospect" group>
+                <DotSelect label="État Prospect" value={p.etat} options={ETAT_OPTIONS} onChange={changeEtat} />
               </Field>
-              <Field label="Statut Suivi Patient">
-                <StatutSelect value={p.statut} onChange={changeStatut} className="w-full [&_select]:h-[38px] [&_select]:rounded-lg [&_select]:text-sm" />
-              </Field>
-              <Field label="Date de rappel">
-                <input type="datetime-local" className={inputCls} value={p.rappelLe ? toLocalInput(new Date(p.rappelLe)) : ''} onChange={(e) => setDate('rappelLe', e.target.value)} />
-              </Field>
-              <Field label="Date de RDV">
-                <input type="datetime-local" className={inputCls} value={p.rdvLe ? toLocalInput(new Date(p.rdvLe)) : ''} onChange={(e) => setDate('rdvLe', e.target.value)} />
-              </Field>
-              <Field label="Panier Moyen (€)">
-                <PanierInput value={p.panier} className="[&_input]:h-[38px] [&_input]:rounded-lg [&_input]:border-slate-200 [&_input]:bg-white [&_input]:text-sm" onCommit={(v) => patch(p.id, { panier: v }, `Panier moyen → ${formatEur(v)}`)} />
-              </Field>
-              <Field label="Demander Avis">
-                <div className="flex h-[38px] items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-3">
-                  <Switch
-                    checked={p.avisGoogle}
-                    label="Demander Avis Google"
-                    onChange={(v) => {
-                      patch(p.id, { avisGoogle: v }, v ? 'Demande d’avis Google envoyée par SMS.' : undefined)
-                      if (v) toast({ title: 'SMS Avis Google envoyé', description: fullName(p), tone: 'success' })
-                    }}
-                  />
-                  <span className={cn('text-xs font-medium', p.avisGoogle ? 'text-[var(--accent-text)]' : 'text-slate-500')}>{p.avisGoogle ? '✓ SMS Avis envoyé' : 'Non demandé'}</span>
-                </div>
+              <Field label="Statut Suivi Patient" group>
+                <StatutSelect size="md" value={p.statut} onChange={changeStatut} />
               </Field>
             </div>
-            <div className="mt-3 flex gap-2">
-              <Button variant="accent" className="flex-1" onClick={() => openRdv(p.id)}>
-                <CalendarCheck size={16} /> {p.rdvLe ? 'Déplacer le RDV' : 'Fixer un RDV'}
+
+            {(rdvAVenir || rappel) && (
+              <div className="mt-3 space-y-1.5">
+                {rdvAVenir && (
+                  <Planned icon={<CalendarCheck size={15} />} label="RDV prévu" when={formatRdvLong(rdvAVenir)} onEdit={() => openRdv(p.id)} />
+                )}
+                {rappel && <Planned icon={<CalendarClock size={15} />} label="Rappel prévu" when={formatRdvLong(rappel)} onEdit={() => openRelance(p.id)} />}
+              </div>
+            )}
+
+            {appareillage && (
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <Field label="Montant facturé (€)">
+                  <MontantInput bordered value={p.montant} onCommit={(v) => patch(p.id, { montant: v }, v === undefined ? 'Montant facturé effacé' : `Montant facturé → ${formatEur(v)}`)} />
+                </Field>
+                <Field label="Demander Avis Google" group>
+                  <div className="flex h-[38px] items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-3">
+                    <Switch
+                      checked={p.avisGoogle}
+                      label="Demander Avis Google"
+                      onChange={(v) => {
+                        patch(p.id, { avisGoogle: v }, v ? 'Demande d’avis Google envoyée par SMS.' : undefined)
+                        if (v) toast({ title: 'SMS Avis Google envoyé', description: fullName(p), tone: 'success' })
+                      }}
+                    />
+                    <span className={cn('truncate text-xs font-medium', p.avisGoogle ? 'text-emerald-700' : 'text-slate-500')}>{p.avisGoogle ? '✓ SMS Avis envoyé' : 'Non demandé'}</span>
+                  </div>
+                </Field>
+              </div>
+            )}
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button variant="accent" className="min-w-[140px] flex-1" onClick={() => openRdv(p.id)}>
+                <CalendarCheck size={15} /> {p.rdvLe ? 'Modifier le RDV' : 'Fixer un RDV'}
               </Button>
-              <Button className="flex-1" onClick={() => openRelance(p.id)}>
-                <CalendarClock size={16} /> Relance phoning
+              <Button className="min-w-[140px] flex-1" onClick={() => openRelance(p.id)}>
+                <CalendarClock size={15} /> Relance phoning
+              </Button>
+              <Button
+                className="min-w-[140px] flex-1"
+                disabled={!nrpNext}
+                title={nrpNext ? `Passer en ${nrpNext}` : KANBAN_ETATS.includes(p.etat) ? 'Déjà en NRP 2' : 'Réservé aux prospects en cours d’appel'}
+                onClick={() => nrpNext && changeEtat(nrpNext)}
+              >
+                <PhoneMissed size={15} /> Pas de réponse (NRP)
               </Button>
             </div>
           </Section>
 
-          {/* Onoff */}
-          <Section title="Traçabilité Automatisations Onoff" icon={<Zap size={14} />}>
+          <Section title="Suivi des SMS automatiques" icon={<MessageSquareText size={14} />}>
             <ul className="divide-y divide-slate-100">
               <SmsRow label="SMS NRP 1" at={p.sms.nrp1} />
               <SmsRow label="SMS NRP 2" at={p.sms.nrp2} />
@@ -330,7 +359,6 @@ export function ProspectDrawer() {
             </ul>
           </Section>
 
-          {/* Notes */}
           <Section title="Notes" icon={<StickyNote size={14} />}>
             <div className="mb-4 flex gap-2">
               <textarea
@@ -362,7 +390,7 @@ export function ProspectDrawer() {
               ))}
               <li className="relative">
                 <span className="absolute top-1.5 -left-[25px] h-2.5 w-2.5 rounded-full border-2 border-white bg-slate-400" />
-                <p className="text-sm text-slate-700">Lead reçu via formulaire {p.source}</p>
+                <p className="text-sm text-slate-700">Questionnaire reçu</p>
                 <p className="mt-0.5 text-[11px] text-slate-400">Automatique · {formatDate(p.createdAt, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
               </li>
             </ol>
@@ -375,7 +403,7 @@ export function ProspectDrawer() {
 
 function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="card-surface bg-white p-4">
+    <section className="rounded-xl border border-slate-200/80 bg-white p-4">
       <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
         <span className="text-slate-400">{icon}</span>
         {title}
@@ -405,11 +433,26 @@ function EditField({ label, value, onCommit, type = 'text', action }: { label: s
   )
 }
 
-function MetaCell({ label, value, tone = 'text-slate-800' }: { label: string; value: string; tone?: string }) {
+function Answer({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-slate-50/70 p-3">
       <dt className="text-[11px] font-medium text-slate-500">{label}</dt>
-      <dd className={cn('mt-0.5 text-[13px] font-semibold', tone)}>{value}</dd>
+      <dd className="mt-0.5 text-[13px] font-semibold text-slate-800">{value}</dd>
+    </div>
+  )
+}
+
+/** Encart récapitulatif d'un RDV ou rappel programmé. */
+function Planned({ icon, label, when, onEdit }: { icon: React.ReactNode; label: string; when: string; onEdit: () => void }) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-lg border border-emerald-100 bg-emerald-50/60 px-3 py-2 text-[13px]">
+      <span className="text-emerald-600">{icon}</span>
+      <span className="min-w-0 flex-1 truncate text-slate-700">
+        {label} : <span className="font-medium text-slate-900">{when}</span>
+      </span>
+      <button onClick={onEdit} className="shrink-0 cursor-pointer text-xs font-medium text-emerald-700 hover:underline">
+        Modifier
+      </button>
     </div>
   )
 }
@@ -430,7 +473,7 @@ function SmsRow({ label, at }: { label: string; at?: string }) {
 export function Toasts() {
   const { state } = useStore()
   return (
-    <div className="pointer-events-none fixed right-4 bottom-20 z-[60] flex w-[340px] max-w-[calc(100vw-2rem)] flex-col gap-2">
+    <div className="pointer-events-none fixed right-4 bottom-4 z-[60] flex w-[340px] max-w-[calc(100vw-2rem)] flex-col gap-2">
       {state.toasts.map((t) => (
         <div key={t.id} className="animate-pop-in pointer-events-auto flex items-start gap-3 rounded-2xl bg-slate-900 p-4 text-white shadow-2xl">
           {t.tone === 'success' ? (
@@ -438,7 +481,7 @@ export function Toasts() {
           ) : t.tone === 'warning' ? (
             <TriangleAlert size={18} className="mt-px shrink-0 text-amber-400" />
           ) : (
-            <Info size={18} className="mt-px shrink-0 text-indigo-300" />
+            <Info size={18} className="mt-px shrink-0 text-sky-300" />
           )}
           <div className="min-w-0">
             <p className="text-sm font-medium">{t.title}</p>

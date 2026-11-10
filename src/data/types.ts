@@ -7,6 +7,7 @@ export type EtatProspect =
   | 'NRP 1'
   | 'NRP 2'
   | 'Relance phoning'
+  | 'RDV fixé'
   | 'Pas intéressé'
   | 'Hors zone'
   | 'Faux numéro'
@@ -14,7 +15,13 @@ export type EtatProspect =
   | 'Clôture'
 
 /** Statut Suivi Patient : le parcours une fois qu'un RDV a été fixé. */
-export type StatutSuivi = 'RDV Pris' | 'RDV Réalisé' | 'Essai' | 'Facturé'
+export type StatutSuivi =
+  | 'En attente'
+  | 'Pas venu'
+  | 'En essai'
+  | 'Facturé'
+  | 'Non appareillable'
+  | "Échec d'appareillage"
 
 export type PourQui = 'Pour moi' | 'Pour un proche'
 export type Situation =
@@ -24,7 +31,6 @@ export type Situation =
   | 'Restaurant'
   | 'Acouphènes'
 export type CentPourcent = 'Oui' | 'Non' | 'Je ne sais pas'
-export type Source = 'Facebook' | 'Instagram'
 
 export interface Note {
   id: string
@@ -33,7 +39,7 @@ export interface Note {
   texte: string
 }
 
-/** Traçabilité des automatisations Onoff : date d'envoi de chaque SMS. */
+/** Suivi des SMS automatiques : date d'envoi de chaque SMS. */
 export interface SmsLog {
   nrp1?: string
   nrp2?: string
@@ -47,10 +53,10 @@ export interface Prospect {
   nom: string
   ville: string
   telephone: string
-  email: string
+  /** Conservé pour les automatisations : jamais affiché dans l'interface partenaire. */
+  email?: string
   age: number
   centre: CentreId
-  source: Source
   createdAt: string // ISO
   etat: EtatProspect
   statut: StatutSuivi | null
@@ -61,9 +67,9 @@ export interface Prospect {
   rdvLe?: string // ISO — date du RDV
   essaiLe?: string // ISO — début de l'essai
   factureLe?: string // ISO — date de facturation
-  panier: number // Panier Moyen (€)
-  avisGoogle: boolean // Demander Avis Google
-  consentementLe: string // ISO — date de consentement (formulaire Meta)
+  montant?: number // Montant facturé (€), saisi à partir de l'essai
+  avisGoogle: boolean // Demander Avis Google (essai / facturé uniquement)
+  consentementLe: string // ISO — date de consentement (questionnaire)
   sms: SmsLog
   notes: Note[]
 }

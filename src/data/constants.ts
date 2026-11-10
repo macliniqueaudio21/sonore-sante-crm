@@ -1,20 +1,23 @@
 import type { BranchId, CentreId, EtatProspect, StatutSuivi } from './types'
 
 export const GROUP_NAME = 'Audition59'
-export const PANIER_MOYEN = 2500 // € par patient facturé
 export const KANBAN_ETATS: EtatProspect[] = ['Nouveau lead', 'NRP 1', 'NRP 2']
 export const ETATS: EtatProspect[] = [
   'Nouveau lead',
   'NRP 1',
   'NRP 2',
   'Relance phoning',
+  'RDV fixé',
   'Pas intéressé',
   'Hors zone',
   'Faux numéro',
   'Doublon',
   'Clôture',
 ]
-export const STATUTS: StatutSuivi[] = ['RDV Pris', 'RDV Réalisé', 'Essai', 'Facturé']
+export const STATUTS: StatutSuivi[] = ['En attente', 'Pas venu', 'En essai', 'Facturé', 'Non appareillable', "Échec d'appareillage"]
+/** Statuts à partir desquels le montant facturé et la demande d'avis Google ont un sens. */
+export const STATUTS_APPAREILLAGE: StatutSuivi[] = ['En essai', 'Facturé']
+export const isAppareillage = (s: StatutSuivi | null) => s !== null && STATUTS_APPAREILLAGE.includes(s)
 /** États qui sortent définitivement un prospect du circuit d'appel. */
 export const ETATS_SORTIE: EtatProspect[] = ['Pas intéressé', 'Hors zone', 'Faux numéro', 'Doublon', 'Clôture']
 
@@ -33,26 +36,28 @@ export const BRANCHES: { id: BranchId; label: string; sub: string }[] = [
   { id: 'tourlaville', label: 'Centre de Tourlaville', sub: 'Manche (50)' },
 ]
 
-/** Couleur du petit point de statut (les badges restent gris). */
-const GREEN = '#10B981', AMBER = '#F59E0B', RED = '#EF4444', BLUE = '#3B82F6', GRAY = '#A1A1AA'
+/** Couleur du point (8 px) associé à chaque valeur : identique dans les menus, cartes et tableaux. */
 export const ETAT_DOT: Record<EtatProspect, string> = {
-  'Nouveau lead': GREEN,
-  'NRP 1': AMBER,
-  'NRP 2': RED,
-  'Relance phoning': BLUE,
-  'Pas intéressé': GRAY,
-  'Hors zone': GRAY,
-  'Faux numéro': GRAY,
-  Doublon: GRAY,
-  Clôture: GRAY,
+  'Nouveau lead': '#10B981', // vert émeraude
+  'NRP 1': '#F59E0B', // ambre
+  'NRP 2': '#F97316', // orange
+  'Relance phoning': '#3B82F6', // bleu
+  'RDV fixé': '#0D9488', // teal
+  'Pas intéressé': '#94A3B8', // ardoise
+  'Hors zone': '#94A3B8',
+  'Faux numéro': '#B87171', // rouge désaturé
+  Doublon: '#94A3B8',
+  Clôture: '#64748B',
 }
 export const STATUT_DOT: Record<StatutSuivi, string> = {
-  'RDV Pris': BLUE,
-  'RDV Réalisé': AMBER,
-  Essai: AMBER,
-  Facturé: GREEN,
+  'En attente': '#64748B', // ardoise
+  'Pas venu': '#F87171', // rouge doux
+  'En essai': '#38BDF8', // bleu ciel
+  Facturé: '#10B981', // émeraude
+  'Non appareillable': '#B4533F', // rouge brique
+  "Échec d'appareillage": '#991B1B', // rouge foncé
 }
-export const DOT = { GREEN, AMBER, RED, BLUE, GRAY }
+export const VIDE_DOT = '#CBD5E1'
 
 export const CONSEILLERS = ['Camille D.', 'Julien M.', 'Sarah L.']
 export const CURRENT_USER = { nom: 'Camille Dufresne', initiales: 'CD', role: 'Audioprothésiste D.E.' }

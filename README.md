@@ -27,22 +27,19 @@ src/
 
 ## Règles métier du prototype
 
-- **Kanban** : uniquement les prospects à l'état « Nouveau lead », « NRP 1 » ou « NRP 2 » **et** sans statut suivi patient.
-  Badge d'ancienneté rouge au-delà de 2 h.
-- **Relance Phoning** : prospects à l'état « Relance phoning » sans statut patient, classés selon la date de rappel.
-- **Parcours Patient** : prospects ayant un statut suivi patient (RDV Pris → RDV Réalisé → Essai en cours → Facturé / Non appareillé).
-- **CA** : chaque patient « Facturé » compte 2 500 €.
-- Le sélecteur de centre filtre toute l'application (vues, KPI, badges du menu).
+- **Navigation** : « Tableau de Bord » (vue Groupe), puis un accordéon par centre (tableau de bord, suivi des prospects,
+  relance phoning, parcours patient) avec pastilles d'alerte rouge (nouveaux leads) et ambre (relances dues),
+  puis « Tous les Prospects » (filtre par centre).
+- **État Prospect** : Nouveau lead, NRP 1, NRP 2, Relance phoning, RDV fixé, Pas intéressé, Hors zone, Faux numéro, Doublon, Clôture.
+- **Statut Suivi Patient** : (Vide), En attente, Pas venu, En essai, Facturé, Non appareillable, Échec d'appareillage.
+- **Kanban** : prospects en Nouveau lead / NRP 1 / NRP 2 sans statut patient. Ancienneté en rouge au-delà de 2 h (nouveaux leads).
+- **Relance Phoning** : prospects en « Relance phoning » sans statut patient, classés selon la date de rappel.
+- **Parcours Patient** : prospects ayant un statut patient. Le montant facturé et la demande d'avis Google
+  n'apparaissent qu'à partir de « En essai ».
+- **CA** : somme des montants facturés des patients au statut « Facturé ».
+- **Confidentialité** : aucune source publicitaire n'est affichée ; l'email est conservé dans les données
+  (automatisations) mais n'est jamais affiché, cherchable ni exporté.
 
-## 3 styles
-
-Un sélecteur discret (en bas à droite) change le style de toute l'application, sur la même structure épurée :
-
-1. **Émeraude Clair** (par défaut) : sidebar blanche, onglet actif vert doux, rappels de vert émeraude.
-2. **Forêt & Blanc** : sidebar vert forêt profond (#062E22), onglet actif émeraude lumineux.
-3. **Plateaux Pastel** : colonnes du Kanban et cartes KPI légèrement teintées (menthe, crème ambrée, pêche).
-
-Les jetons de chaque style sont dans `src/index.css`, la liste des styles et les couleurs des graphiques
-dans `src/design.tsx`. Le choix est mémorisé dans le navigateur.
+Thème unique « Forêt & Blanc » (jetons dans `src/index.css`).
 
 Les modifications (changement d'état, RDV, notes…) sont gardées en mémoire et réinitialisées au rechargement de la page.
